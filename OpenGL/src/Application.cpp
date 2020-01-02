@@ -13,6 +13,9 @@
 #include "VertexBufferLayout.h"
 #include "Texture.h"
 
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
 // https://www.khronos.org/opengl/wiki/OpenGL_Error
 void GLAPIENTRY
 MessageCallback(GLenum source,
@@ -88,6 +91,8 @@ int RunApp()
 
 	IndexBuffer ib(indices, 6);
 
+	glm::mat4 proj = glm::ortho(-2.0f, 2.0f, -1.5f, 1.5f, -1.0f, 1.0f); // 4 x 3
+
 	Shader shader("res/shaders/Basic.shader");
 	shader.Bind();
 	shader.SetUniform4f("u_Color", 0.8f, 0.3f, 0.8f, 1.0f);
@@ -96,12 +101,12 @@ int RunApp()
 	texture.Bind(0);
 	shader.SetUniform1i("u_Texture", 0);
 
+	shader.SetUniformMat4f("u_MVP", proj);
+
 	va.Unbind();
 	vb.Unbind();
 	ib.Unbind();
 	shader.Unbind();
-
-	
 
 	Renderer renderer;
 
