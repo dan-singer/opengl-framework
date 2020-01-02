@@ -8,9 +8,11 @@
 #include "Renderer.h"
 #include "VertexBuffer.h"
 #include "IndexBuffer.h"
+#include "VertexArray.h"
 
-static VertexBuffer* vbo;
+static VertexBuffer* vb;
 static IndexBuffer* ibo;
+static VertexArray* va;
 
 struct ShaderProgramSource
 {
@@ -138,21 +140,13 @@ int main(void)
 	};
 
 	// Vertex array objects bind vertex buffers with the layout of their vertices specified in glVertexAttribPointer
-	unsigned int vao;
-	GLCall(glGenVertexArrays(1, &vao));
-	GLCall(glBindVertexArray(vao));
 
-	vbo = new VertexBuffer(positions, 4 * 2 * sizeof(float));
+	va = new VertexArray();
+	vb = new VertexBuffer(positions, 4 * 2 * sizeof(float));
 
-	GLCall(glEnableVertexAttribArray(0)); // Enable attribute 0
-	GLCall(glVertexAttribPointer(
-		0,					// Which attribute are we talking about?
-		2,					// How many components are in this attribute?
-		GL_FLOAT,			// What's the data type?
-		GL_FALSE,			// Should we normalize?
-		2 * sizeof(float),	// Stride: How many bytes to get to the next *vertex*
-		0					// Pointer: How many bytes to get to the next *attribute*
-	));
+	VertexBufferLayout layout;
+	layout.Push<float>(2);
+	va->AddBuffer(*vb, layout);
 
 	ibo = new IndexBuffer(indices, 6);
 
@@ -180,7 +174,7 @@ int main(void)
 		GLCall(glUseProgram(shader));
 		GLCall(glUniform4f(location, r, 0.3f, 0.8f, 1.0f));
 
-		GLCall(glBindVertexArray(vao));
+		va->Bind();
 		ibo->Bind();
 
 		GLCall(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr)); // nullptr is ok since GL_ELEMENT_ARRAY_BUFFER is bound
@@ -200,8 +194,20 @@ int main(void)
 		GLCall(glfwPollEvents());
 	}
 	GLCall(glDeleteProgram(shader));
-	delete vbo;
+	delete vb;
 	delete ibo;
+	delete va;
 	glfwTerminate();
 	return 0;
 }
+
+/*
+	GLCall(glVertexAttribPointer(
+		0,					// Which attribute are we talking about?
+		2,					// How many components are in this attribute?
+		GL_FLOAT,			// What's the data type?
+		GL_FALSE,			// Should we normalize?
+		2 * sizeof(float),	// Stride: How many bytes to get to the next *vertex*
+		0					// Pointer: How many bytes to get to the next *attribute*
+	));
+*/
