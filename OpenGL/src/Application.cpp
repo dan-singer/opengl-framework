@@ -9,95 +9,10 @@
 #include "VertexBuffer.h"
 #include "IndexBuffer.h"
 #include "VertexArray.h"
+#include "Shader.h"
 
-static VertexBuffer* vb;
-static IndexBuffer* ibo;
-static VertexArray* va;
 
-struct ShaderProgramSource
-{
-	std::string VertexSource;
-	std::string FragmentSource;
-};
-
-static ShaderProgramSource ParseShader(const std::string& filepath)
-{
-	std::ifstream stream(filepath);
-
-	enum class ShaderType
-	{
-		NONE = -1,
-		VERTEX = 0,
-		FRAGMENT = 1
-	};
-
-	std::string line;
-	std::stringstream ss[2];
-	ShaderType type = ShaderType::NONE;
-	while (getline(stream, line))
-	{
-		if (line.find("#shader") != std::string::npos) 
-		{
-			if (line.find("vertex") != std::string::npos)
-			{
-				type = ShaderType::VERTEX;
-			}
-			else if (line.find("fragment") != std::string::npos)
-			{
-				type = ShaderType::FRAGMENT;
-			}
-		}
-		else
-		{
-			ss[(int)type] << line << '\n';
-		}
-	}
-	return { ss[0].str(), ss[1].str() };
-}
-
-static unsigned int CompileShader(unsigned int type, const std::string& source)
-{
-	unsigned int id = glCreateShader(type);
-	const char* src = source.c_str();
-	glShaderSource(id, 1, &src, nullptr);
-	glCompileShader(id);
-
-	int result;
-	glGetShaderiv(id, GL_COMPILE_STATUS, &result);
-	if (result == GL_FALSE) 
-	{
-		int length;
-		glGetShaderiv(id, GL_INFO_LOG_LENGTH, &length);
-		char* message = (char*)alloca(length * sizeof(char)); // Allocate dynamically sized data on the stack!
-		glGetShaderInfoLog(id, length, &length, message);
-		std::cout << "Failed to compile " << (type == GL_VERTEX_SHADER ? "vertex" : "fragment") << " shader!\n";
-		std::cout << message << std::endl;
-		glDeleteShader(id);
-		return 0;
-	}
-
-	return id;
-}
-
-static unsigned int CreateShader(const std::string& vertexShader, const std::string& fragmentShader)
-{
-	unsigned int program = glCreateProgram();
-
-	unsigned int vs = CompileShader(GL_VERTEX_SHADER, vertexShader);
-	unsigned int fs = CompileShader(GL_FRAGMENT_SHADER, fragmentShader);
-	
-	glAttachShader(program, vs);
-	glAttachShader(program, fs);
-	glLinkProgram(program);
-	glValidateProgram(program);
-
-	glDeleteShader(vs);
-	glDeleteShader(fs);
-
-	return program;
-}
-
-int main(void)
+int RunApp()
 {
 	GLFWwindow* window;
 
@@ -141,27 +56,23 @@ int main(void)
 
 	// Vertex array objects bind vertex buffers with the layout of their vertices specified in glVertexAttribPointer
 
-	va = new VertexArray();
-	vb = new VertexBuffer(positions, 4 * 2 * sizeof(float));
+	VertexArray va;
+	VertexBuffer vb(positions, 4 * 2 * sizeof(float));
 
 	VertexBufferLayout layout;
 	layout.Push<float>(2);
-	va->AddBuffer(*vb, layout);
+	va.AddBuffer(vb, layout);
 
-	ibo = new IndexBuffer(indices, 6);
+	IndexBuffer ib(indices, 6);
 
-	ShaderProgramSource source = ParseShader("res/shaders/Basic.shader");
-	unsigned int shader = CreateShader(source.VertexSource, source.FragmentSource);
-	GLCall(glUseProgram(shader));
+	Shader shader("res/shaders/Basic.shader");
+	shader.Bind();
+	shader.SetUniform4f("u_Color", 0.8f, 0.3f, 0.8f, 1.0f);
 
-	GLCall(int location = glGetUniformLocation(shader, "u_Color"));
-	ASSERT(location != -1);
-	GLCall(glUniform4f(location, 0.8f, 0.3f, 0.8f, 1.0f));
-
-	GLCall(glBindVertexArray(0));
-	GLCall(glBindBuffer(GL_ARRAY_BUFFER, 0));
-	GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0));
-	GLCall(glUseProgram(0));
+	va.Unbind();
+	vb.Unbind();
+	ib.Unbind();
+	shader.Unbind();
 
 	float r = 0.0f;
 	float increment = 0.05f;
@@ -171,11 +82,11 @@ int main(void)
 		/* Render here */
 		GLCall(glClear(GL_COLOR_BUFFER_BIT));
 
-		GLCall(glUseProgram(shader));
-		GLCall(glUniform4f(location, r, 0.3f, 0.8f, 1.0f));
+		shader.Bind();
+		shader.SetUniform4f("u_Color", r, 0.3f, 0.8f, 1.0f);
 
-		va->Bind();
-		ibo->Bind();
+		va.Bind();
+		ib.Bind();
 
 		GLCall(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr)); // nullptr is ok since GL_ELEMENT_ARRAY_BUFFER is bound
 
@@ -193,21 +104,12 @@ int main(void)
 		/* Poll for and process events */
 		GLCall(glfwPollEvents());
 	}
-	GLCall(glDeleteProgram(shader));
-	delete vb;
-	delete ibo;
-	delete va;
-	glfwTerminate();
-	return 0;
 }
 
-/*
-	GLCall(glVertexAttribPointer(
-		0,					// Which attribute are we talking about?
-		2,					// How many components are in this attribute?
-		GL_FLOAT,			// What's the data type?
-		GL_FALSE,			// Should we normalize?
-		2 * sizeof(float),	// Stride: How many bytes to get to the next *vertex*
-		0					// Pointer: How many bytes to get to the next *attribute*
-	));
-*/
+int main(void)
+{
+	int result = RunApp();
+	glfwTerminate();
+	return result;
+}
+
