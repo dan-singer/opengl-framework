@@ -12,6 +12,20 @@
 #include "Shader.h"
 #include "VertexBufferLayout.h"
 
+// https://www.khronos.org/opengl/wiki/OpenGL_Error
+void GLAPIENTRY
+MessageCallback(GLenum source,
+	GLenum type,
+	GLuint id,
+	GLenum severity,
+	GLsizei length,
+	const GLchar* message,
+	const void* userParam)
+{
+	fprintf(stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
+		(type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""),
+		type, severity, message);
+}
 
 int RunApp()
 {
@@ -40,6 +54,9 @@ int RunApp()
 	// OpenGL context must have been created before initializing GLEW!
 	if (glewInit() != GLEW_OK)
 		std::cout << "Error!\n";
+
+	glEnable(GL_DEBUG_OUTPUT);
+	glDebugMessageCallback(MessageCallback, 0);
 
 	std::cout << glGetString(GL_VERSION) << "\n";
 
@@ -98,10 +115,10 @@ int RunApp()
 		r += increment;
 
 		/* Swap front and back buffers */
-		GLCall(glfwSwapBuffers(window));
+		glfwSwapBuffers(window);
 
 		/* Poll for and process events */
-		GLCall(glfwPollEvents());
+		glfwPollEvents();
 	}
 }
 
