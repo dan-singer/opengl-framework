@@ -11,6 +11,7 @@
 #include "VertexArray.h"
 #include "Shader.h"
 #include "VertexBufferLayout.h"
+#include "Texture.h"
 
 // https://www.khronos.org/opengl/wiki/OpenGL_Error
 void GLAPIENTRY
@@ -61,10 +62,10 @@ int RunApp()
 	std::cout << glGetString(GL_VERSION) << "\n";
 
 	float positions[] = {
-		-0.5f, -0.5f,
-		0.5f, -0.5f,
-		0.5f, 0.5f,
-		-0.5f, 0.5f
+		-0.5f, -0.5f, 0.0f, 0.0f,
+		0.5f, -0.5f, 1.0f, 0.0f,
+		0.5f, 0.5f, 1.0f, 1.0f,
+		-0.5f, 0.5f, 0.0f, 1.0f,
 	};
 
 	unsigned int indices[] = {
@@ -72,12 +73,16 @@ int RunApp()
 		2, 3, 0
 	};
 
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glEnable(GL_BLEND);
+
 	// Vertex array objects bind vertex buffers with the layout of their vertices specified in glVertexAttribPointer
 
 	VertexArray va;
-	VertexBuffer vb(positions, 4 * 2 * sizeof(float));
+	VertexBuffer vb(positions, 4 * 4 * sizeof(float));
 
 	VertexBufferLayout layout;
+	layout.Push<float>(2);
 	layout.Push<float>(2);
 	va.AddBuffer(vb, layout);
 
@@ -87,10 +92,16 @@ int RunApp()
 	shader.Bind();
 	shader.SetUniform4f("u_Color", 0.8f, 0.3f, 0.8f, 1.0f);
 
+	Texture texture("res/textures/opengl_logo.png");
+	texture.Bind(0);
+	shader.SetUniform1i("u_Texture", 0);
+
 	va.Unbind();
 	vb.Unbind();
 	ib.Unbind();
 	shader.Unbind();
+
+	
 
 	Renderer renderer;
 
