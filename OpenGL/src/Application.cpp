@@ -6,6 +6,11 @@
 #include <sstream>
 
 #include "Renderer.h"
+#include "VertexBuffer.h"
+#include "IndexBuffer.h"
+
+static VertexBuffer* vbo;
+static IndexBuffer* ibo;
 
 struct ShaderProgramSource
 {
@@ -137,10 +142,8 @@ int main(void)
 	GLCall(glGenVertexArrays(1, &vao));
 	GLCall(glBindVertexArray(vao));
 
-	unsigned int buffer;
-	GLCall(glGenBuffers(1, &buffer)); // Generates data that will go on GPU
-	GLCall(glBindBuffer(GL_ARRAY_BUFFER, buffer)); // What type of buffer should this act as?
-	GLCall(glBufferData(GL_ARRAY_BUFFER, 4 * 2 * sizeof(float), positions, GL_STATIC_DRAW)); // Copy the data to the GPU
+	vbo = new VertexBuffer(positions, 4 * 2 * sizeof(float));
+
 	GLCall(glEnableVertexAttribArray(0)); // Enable attribute 0
 	GLCall(glVertexAttribPointer(
 		0,					// Which attribute are we talking about?
@@ -151,10 +154,7 @@ int main(void)
 		0					// Pointer: How many bytes to get to the next *attribute*
 	));
 
-	unsigned int ibo;
-	GLCall(glGenBuffers(1, &ibo)); 
-	GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo));
-	GLCall(glBufferData(GL_ELEMENT_ARRAY_BUFFER, 6 * sizeof(unsigned int), indices, GL_STATIC_DRAW));
+	ibo = new IndexBuffer(indices, 6);
 
 	ShaderProgramSource source = ParseShader("res/shaders/Basic.shader");
 	unsigned int shader = CreateShader(source.VertexSource, source.FragmentSource);
@@ -181,7 +181,8 @@ int main(void)
 		GLCall(glUniform4f(location, r, 0.3f, 0.8f, 1.0f));
 
 		GLCall(glBindVertexArray(vao));
-		GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo));
+		ibo->Bind();
+
 		GLCall(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr)); // nullptr is ok since GL_ELEMENT_ARRAY_BUFFER is bound
 
 		if (r > 1.0f) {
@@ -199,6 +200,8 @@ int main(void)
 		GLCall(glfwPollEvents());
 	}
 	GLCall(glDeleteProgram(shader));
+	delete vbo;
+	delete ibo;
 	glfwTerminate();
 	return 0;
 }
