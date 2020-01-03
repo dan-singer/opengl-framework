@@ -27,7 +27,11 @@ public:
 	glm::mat4 GetView() { return m_View; }
 
 	glm::vec3 GetPosition() { return m_Position; }
-	glm::vec3 SetPosition(glm::vec3 pos) { m_Position = pos; RecalculateDirection(); }
+	glm::vec3 SetPosition(glm::vec3 pos) 
+	{ 
+		m_Position = pos; 
+		RecalculateDirection(); 
+	}
 
 	glm::vec3 GetForward() { return m_Forward; }
 	glm::vec3 GetUp() { return m_Up; }
