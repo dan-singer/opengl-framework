@@ -5,7 +5,6 @@
 #include <string>
 #include <sstream>
 
-#include "Renderer.h"
 #include "VertexBuffer.h"
 #include "IndexBuffer.h"
 #include "VertexArray.h"
@@ -16,6 +15,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/quaternion.hpp>
+#include "Camera.h"
 
 // https://www.khronos.org/opengl/wiki/OpenGL_Error
 void GLAPIENTRY
@@ -32,21 +32,21 @@ MessageCallback(GLenum source,
 		type, severity, message);
 }
 
-float pitch = 0.0f;
-float yaw = 180.0f;
-float lastX = 960.0f / 2;
-float lastY = 540.0f / 2;
-float fov = 45.0f;
-bool firstMouse = true;
-glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
-glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
-glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
+Camera* camera = nullptr;
 float deltaTime = 0.0f;	// Time between current frame and last frame
 float lastFrame = 0.0f; // Time of last frame
+int width = 960;
+int height = 540;
+bool firstMouse = true;
+float lastX = width / 2.0f;
+float lastY = height / 2.0f;
 
 void MouseCallback(GLFWwindow* window, double xpos, double ypos)
 {
+	if (!camera) {
+		return;
+	}
 	if (firstMouse) 
 	{
 		lastX = xpos;
@@ -62,42 +62,55 @@ void MouseCallback(GLFWwindow* window, double xpos, double ypos)
 	xoff *= sensitivity;
 	yoff *= sensitivity;
 
-	yaw -= xoff;
-	pitch += yoff;
+	float newYaw = camera->GetYaw() - xoff;
+	float newPitch = camera->GetPitch() - yoff;
 
-	if (pitch > 89.0f)
-		pitch = 89.0f;
-	if (pitch < -89.0f)
-		pitch = -89.0f;
-	
-	glm::quat q(glm::vec3(glm::radians(pitch), glm::radians(yaw), 0.0f));
-	glm::vec4 dir = glm::normalize(q * glm::vec4(0, 0, 1.0f, 1.0f));
-	cameraFront = glm::vec3(dir);
+	if (newPitch > 89.0f)
+		newPitch = 89.0f;
+	if (newPitch < -89.0f)
+		newPitch = -89.0f;
+
+
+	camera->SetYaw(newYaw);
+	camera->SetPitch(newPitch);
+
 }
 
 void ScrollCallback(GLFWwindow* window, double xoff, double yoff)
 {
-	fov -= yoff;
-	if (fov < 1.0f) {
-		fov = 1.0f;
+	if (!camera) {
+		return;
 	}
-	else if (fov > 45.0f) {
-		fov = 45.0f;
+	camera->AdjustFOV(-yoff);
+	if (camera->GetFOV() < 1.0f) {
+		camera->SetFOV(1.0f);
+	}
+	else if (camera->GetFOV() > 45.0f) {
+		camera->SetFOV(45.0f);
 	}
 }
 
 
 void ProcessInput(GLFWwindow* window)
 {
-	const float cameraSpeed = 2.5f * deltaTime; // adjust accordingly
+	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+	{
+		glfwSetWindowShouldClose(window, true);
+		return;
+	}
+
+	if (!camera)
+		return;
+
+	const float cameraSpeed = camera->GetSpeed() * deltaTime; // adjust accordingly
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-		cameraPos += cameraSpeed * cameraFront;
+		camera->Translate(cameraSpeed * camera->GetForward());
 	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-		cameraPos -= cameraSpeed * cameraFront;
+		camera->Translate(-cameraSpeed * camera->GetForward());
 	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-		cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+		camera->Translate(-glm::normalize(glm::cross(camera->GetForward(), camera->GetUp())) * cameraSpeed);
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-		cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+		camera->Translate(glm::normalize(glm::cross(camera->GetForward(), camera->GetUp())) * cameraSpeed);
 }
 
 int RunApp()
@@ -187,7 +200,6 @@ int RunApp()
 	glEnable(GL_BLEND);
 
 	// Vertex array objects bind vertex buffers with the layout of their vertices specified in glVertexAttribPointer
-
 	VertexArray va;
 	VertexBuffer vb(vertices, sizeof(vertices));
 
@@ -196,20 +208,9 @@ int RunApp()
 	layout.Push<float>(2);
 	va.AddBuffer(vb, layout);
 
-	glm::mat4 proj = glm::perspective(glm::radians(fov), 960.0f / 540.0f, 0.01f, 100.0f);
+	camera = new Camera(glm::vec3(0, 0, 3), 2.5f, width, height);
+
 	glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0));
-
-	// manual view matrix
-	/*
-	glm::vec3 cameraPos(0, 0, 3.0f);
-	glm::vec3 cameraTarget(0, 0, 0);
-	glm::vec3 cameraDirectionReversed = glm::normalize(cameraPos - cameraTarget);
-	glm::vec3 up = glm::vec3(0, 1.0f, 0);
-	glm::vec3 cameraRight = glm::normalize(glm::cross(up, cameraDirectionReversed));
-	glm::vec3 cameraUp = glm::normalize(glm::cross(cameraDirectionReversed, cameraRight));
-	*/
-
-	glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 
 	Shader shader("res/shaders/Basic.vs", "res/shaders/Basic.fs");
 	shader.Bind();
@@ -225,13 +226,10 @@ int RunApp()
 	vb.Unbind();
 	shader.Unbind();
 
-	Renderer renderer;
-
-
 	/* Loop until the user closes the window */
 	while (!glfwWindowShouldClose(window))
 	{
-		renderer.Clear();
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		ProcessInput(window);
 
@@ -240,13 +238,12 @@ int RunApp()
 		lastFrame = currentFrame;
 
 		shader.Bind();
-		proj = glm::perspective(glm::radians(fov), 960.0f / 540.0f, 0.01f, 100.0f);
-		view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
-		mvp = proj * view * model;
+		mvp = camera->GetProjection() * camera->GetView() * model;
 
 		shader.SetUniformMat4f("u_MVP", mvp);
 		
-		renderer.Draw(va, shader);
+		va.Bind();
+		glDrawArrays(GL_TRIANGLES, 0, va.GetVb()->GetSize());
 
 		/* Swap front and back buffers */
 		glfwSwapBuffers(window);
