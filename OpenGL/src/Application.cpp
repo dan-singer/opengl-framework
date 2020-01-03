@@ -15,6 +15,7 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/quaternion.hpp>
 
 // https://www.khronos.org/opengl/wiki/OpenGL_Error
 void GLAPIENTRY
@@ -31,12 +32,48 @@ MessageCallback(GLenum source,
 		type, severity, message);
 }
 
+float pitch = 0.0f;
+float yaw = 180.0f;
+float lastX = 960.0f / 2;
+float lastY = 540.0f / 2;
+bool firstMouse = true;
 glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
 float deltaTime = 0.0f;	// Time between current frame and last frame
 float lastFrame = 0.0f; // Time of last frame
+
+void MouseCallback(GLFWwindow* window, double xpos, double ypos)
+{
+	if (firstMouse) 
+	{
+		lastX = xpos;
+		lastY = ypos;
+		firstMouse = false;
+	}
+	float xoff = xpos - lastX;
+	float yoff = ypos - lastY;
+	lastX = xpos;
+	lastY = ypos;
+
+	float sensitivity = 0.05f;
+	xoff *= sensitivity;
+	yoff *= sensitivity;
+
+	yaw -= xoff;
+	pitch += yoff;
+
+	if (pitch > 89.0f)
+		pitch = 89.0f;
+	if (pitch < -89.0f)
+		pitch = -89.0f;
+	
+	glm::quat q(glm::vec3(glm::radians(pitch), glm::radians(yaw), 0.0f));
+	glm::vec4 dir = glm::normalize(q * glm::vec4(0, 0, 1.0f, 1.0f));
+	cameraFront = glm::vec3(dir);
+}
+
 
 void ProcessInput(GLFWwindow* window)
 {
@@ -74,6 +111,9 @@ int RunApp()
 	/* Make the window's context current */
 	glfwMakeContextCurrent(window);
 	glfwSwapInterval(1);
+
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	glfwSetCursorPosCallback(window, MouseCallback);
 
 	// OpenGL context must have been created before initializing GLEW!
 	if (glewInit() != GLEW_OK)
