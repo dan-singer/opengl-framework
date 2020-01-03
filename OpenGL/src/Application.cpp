@@ -36,6 +36,7 @@ float pitch = 0.0f;
 float yaw = 180.0f;
 float lastX = 960.0f / 2;
 float lastY = 540.0f / 2;
+float fov = 45.0f;
 bool firstMouse = true;
 glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
@@ -72,6 +73,17 @@ void MouseCallback(GLFWwindow* window, double xpos, double ypos)
 	glm::quat q(glm::vec3(glm::radians(pitch), glm::radians(yaw), 0.0f));
 	glm::vec4 dir = glm::normalize(q * glm::vec4(0, 0, 1.0f, 1.0f));
 	cameraFront = glm::vec3(dir);
+}
+
+void ScrollCallback(GLFWwindow* window, double xoff, double yoff)
+{
+	fov -= yoff;
+	if (fov < 1.0f) {
+		fov = 1.0f;
+	}
+	else if (fov > 45.0f) {
+		fov = 45.0f;
+	}
 }
 
 
@@ -114,6 +126,7 @@ int RunApp()
 
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	glfwSetCursorPosCallback(window, MouseCallback);
+	glfwSetScrollCallback(window, ScrollCallback);
 
 	// OpenGL context must have been created before initializing GLEW!
 	if (glewInit() != GLEW_OK)
@@ -183,7 +196,7 @@ int RunApp()
 	layout.Push<float>(2);
 	va.AddBuffer(vb, layout);
 
-	glm::mat4 proj = glm::perspective(45.0f, 960.0f / 540.0f, 0.01f, 100.0f);
+	glm::mat4 proj = glm::perspective(glm::radians(fov), 960.0f / 540.0f, 0.01f, 100.0f);
 	glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0));
 
 	// manual view matrix
@@ -198,7 +211,7 @@ int RunApp()
 
 	glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 
-	Shader shader("res/shaders/Basic.shader");
+	Shader shader("res/shaders/Basic.vs", "res/shaders/Basic.fs");
 	shader.Bind();
 	shader.SetUniform4f("u_Color", 0.8f, 0.3f, 0.8f, 1.0f);
 
@@ -227,7 +240,7 @@ int RunApp()
 		lastFrame = currentFrame;
 
 		shader.Bind();
-
+		proj = glm::perspective(glm::radians(fov), 960.0f / 540.0f, 0.01f, 100.0f);
 		view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 		mvp = proj * view * model;
 

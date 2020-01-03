@@ -4,10 +4,10 @@
 #include <fstream>
 #include <string>
 #include <sstream>
-Shader::Shader(const std::string& filepath) :
-	m_FilePath(filepath), m_RendererID(0)
+Shader::Shader(const std::string& vs, const std::string& ps) :
+	m_RendererID(0)
 {
-	ShaderProgramSource source = ParseShader(filepath);
+	ShaderProgramSource source = ParseShader(vs, ps);
 	m_RendererID = CreateShader(source.VertexSource, source.FragmentSource);
 }
 
@@ -77,39 +77,14 @@ unsigned int Shader::CreateShader(const std::string& vertexShader, const std::st
 
 
 
-ShaderProgramSource Shader::ParseShader(const std::string& filepath)
+ShaderProgramSource Shader::ParseShader(const std::string& vs, const std::string& ps)
 {
-	std::ifstream stream(filepath);
+	std::ifstream vsStream(vs);
+	std::ifstream psStream(ps);
 
-	enum class ShaderType
-	{
-		NONE = -1,
-		VERTEX = 0,
-		FRAGMENT = 1
-	};
-
-	std::string line;
-	std::stringstream ss[2];
-	ShaderType type = ShaderType::NONE;
-	while (getline(stream, line))
-	{
-		if (line.find("#shader") != std::string::npos)
-		{
-			if (line.find("vertex") != std::string::npos)
-			{
-				type = ShaderType::VERTEX;
-			}
-			else if (line.find("fragment") != std::string::npos)
-			{
-				type = ShaderType::FRAGMENT;
-			}
-		}
-		else
-		{
-			ss[(int)type] << line << '\n';
-		}
-	}
-	return { ss[0].str(), ss[1].str() };
+	std::string vsSource((std::istreambuf_iterator<char>(vsStream)), std::istreambuf_iterator<char>());
+	std::string psSource((std::istreambuf_iterator<char>(psStream)), std::istreambuf_iterator<char>());
+	return { vsSource, psSource };
 }
 
 unsigned int Shader::CompileShader(unsigned int type, const std::string& source)
