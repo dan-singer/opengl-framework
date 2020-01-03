@@ -42,6 +42,8 @@ bool firstMouse = true;
 float lastX = width / 2.0f;
 float lastY = height / 2.0f;
 
+glm::vec3 lightPos(-1.0f, 1.0f, 0.0f);
+
 void MouseCallback(GLFWwindow* window, double xpos, double ypos)
 {
 	if (!camera) {
@@ -153,79 +155,82 @@ int RunApp()
 	std::cout << glGetString(GL_VERSION) << "\n";
 
 	float vertices[] = {
-		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-		 0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
-		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+		-0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+		 0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+		 0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+		 0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+		-0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+		-0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
 
-		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-		 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-		 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-		 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-		-0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
-		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+		-0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+		 0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+		 0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+		 0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+		-0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+		-0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
 
-		-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-		-0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-		-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+		-0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+		-0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+		-0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+		-0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+		-0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+		-0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
 
-		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		 0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-		 0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-		 0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+		 0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+		 0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+		 0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+		 0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+		 0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+		 0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
 
-		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-		 0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
-		 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-		 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+		-0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+		 0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+		 0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+		 0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+		-0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+		-0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
 
-		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-		-0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
-		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f
+		-0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
+		 0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
+		 0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+		 0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+		-0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+		-0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f
 	};
 
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_BLEND);
 
 	// Vertex array objects bind vertex buffers with the layout of their vertices specified in glVertexAttribPointer
-	VertexArray va;
-	VertexBuffer vb(vertices, sizeof(vertices));
+	VertexArray cubeVA;
+	VertexBuffer cubeVB(vertices, sizeof(vertices), 36);
 
-	VertexBufferLayout layout;
-	layout.Push<float>(3);
-	layout.Push<float>(2);
-	va.AddBuffer(vb, layout);
+	VertexBufferLayout cubeLayout;
+	cubeLayout.Push<float>(3);
+	cubeLayout.Push<float>(3);
+	cubeVA.AddBuffer(cubeVB, cubeLayout);
+
+	VertexArray lightVA;
+	VertexBufferLayout lightLayout;
+	lightLayout.Push<float>(3);
+	lightLayout.Push<float>(3);
+	lightVA.AddBuffer(cubeVB, lightLayout);
 
 	camera = new Camera(glm::vec3(0, 0, 3), 2.5f, width, height);
 
-	glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0));
+	glm::mat4 cubeModel = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0));
+	glm::mat4 lightModel = glm::translate(glm::mat4(1.0f), lightPos);
+	lightModel = glm::scale(lightModel, glm::vec3(0.2f));
 
-	Shader shader("res/shaders/Basic.vs", "res/shaders/Basic.fs");
-	shader.Bind();
-	shader.SetUniform4f("u_Color", 0.8f, 0.3f, 0.8f, 1.0f);
+	Shader basicLitShader("res/shaders/BasicLit.vs", "res/shaders/BasicLit.fs");
+	basicLitShader.Bind();
+	basicLitShader.SetUniform3f("objectColor", 1.0f, 0.5f, 0.31f);
+	basicLitShader.SetUniform3f("lightColor", 1.0f, 1.0f, 1.0f);
+	basicLitShader.SetUniform3f("lightPos", lightPos);
 
-	Texture texture("res/textures/texture.jpg");
-	texture.Bind(0);
-	shader.SetUniform1i("u_Texture", 0);
+	Shader colorShader("res/shaders/BasicLit.vs", "res/shaders/Color.fs");
 
-	glm::mat4 mvp;
-
-	va.Unbind();
-	vb.Unbind();
-	shader.Unbind();
-
+	
 	/* Loop until the user closes the window */
 	while (!glfwWindowShouldClose(window))
 	{
@@ -237,13 +242,24 @@ int RunApp()
 		deltaTime = currentFrame - lastFrame;
 		lastFrame = currentFrame;
 
-		shader.Bind();
-		mvp = camera->GetProjection() * camera->GetView() * model;
 
-		shader.SetUniformMat4f("u_MVP", mvp);
-		
-		va.Bind();
-		glDrawArrays(GL_TRIANGLES, 0, va.GetVb()->GetSize());
+		// Draw Cube
+		basicLitShader.Bind();
+		basicLitShader.SetUniformMat4f("model", cubeModel);
+		basicLitShader.SetUniformMat4f("view", camera->GetView());
+		basicLitShader.SetUniformMat4f("projection", camera->GetProjection());
+		basicLitShader.SetUniform3f("viewPos", camera->GetPosition());
+
+		cubeVA.Bind();
+		glDrawArrays(GL_TRIANGLES, 0, cubeVA.GetVb().GetVertexCount());
+
+		// Draw Light Source
+		colorShader.Bind();
+		colorShader.SetUniformMat4f("model", lightModel);
+		colorShader.SetUniformMat4f("view", camera->GetView());
+		colorShader.SetUniformMat4f("projection", camera->GetProjection());
+		lightVA.Bind();
+		glDrawArrays(GL_TRIANGLES, 0, lightVA.GetVb().GetVertexCount());
 
 		/* Swap front and back buffers */
 		glfwSwapBuffers(window);
@@ -251,6 +267,8 @@ int RunApp()
 		/* Poll for and process events */
 		glfwPollEvents();
 	}
+	delete camera;
+
 }
 
 int main(void)

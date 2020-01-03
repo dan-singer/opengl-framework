@@ -14,7 +14,7 @@ public:
 	void Bind() const;
 	void Unbind() const;
 
-	inline VertexBuffer* GetVb() { return m_Vb; }
+	inline VertexBuffer& GetVb() { return *m_Vb; }
 
 	~VertexArray();
 };
