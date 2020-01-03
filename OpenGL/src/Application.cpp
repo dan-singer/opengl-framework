@@ -42,7 +42,7 @@ bool firstMouse = true;
 float lastX = width / 2.0f;
 float lastY = height / 2.0f;
 
-glm::vec3 lightPos(-1.0f, 1.0f, 0.0f);
+glm::vec3 lightPos(0.0f, 0.0f, 0.0f);
 
 void MouseCallback(GLFWwindow* window, double xpos, double ypos)
 {
@@ -230,7 +230,10 @@ int RunApp()
 
 	Shader colorShader("res/shaders/BasicLit.vs", "res/shaders/Color.fs");
 
-	
+	float lightRadius = 1.0f;
+	float lightAngle = 0.0f;
+	float lightSpeed = 20.0f; // HA!
+	glm::vec3 lightOrigin = lightPos;
 	/* Loop until the user closes the window */
 	while (!glfwWindowShouldClose(window))
 	{
@@ -242,18 +245,29 @@ int RunApp()
 		deltaTime = currentFrame - lastFrame;
 		lastFrame = currentFrame;
 
+		// Light movement
+		glm::vec3 radiusVec(cos(glm::radians(lightAngle)), 0.0f, sin(glm::radians(lightAngle)));
+		radiusVec *= lightRadius;
+		lightPos = lightOrigin + radiusVec;
+
+		lightAngle += lightSpeed * deltaTime;
+
 
 		// Draw Cube
 		basicLitShader.Bind();
 		basicLitShader.SetUniformMat4f("model", cubeModel);
 		basicLitShader.SetUniformMat4f("view", camera->GetView());
 		basicLitShader.SetUniformMat4f("projection", camera->GetProjection());
+		basicLitShader.SetUniform3f("lightPos", lightPos);
 		basicLitShader.SetUniform3f("viewPos", camera->GetPosition());
 
 		cubeVA.Bind();
 		glDrawArrays(GL_TRIANGLES, 0, cubeVA.GetVb().GetVertexCount());
 
 		// Draw Light Source
+		lightModel = glm::translate(glm::mat4(1.0f), lightPos);
+		lightModel = glm::scale(lightModel, glm::vec3(0.2f));
+
 		colorShader.Bind();
 		colorShader.SetUniformMat4f("model", lightModel);
 		colorShader.SetUniformMat4f("view", camera->GetView());
