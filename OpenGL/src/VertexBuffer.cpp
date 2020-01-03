@@ -1,7 +1,8 @@
 #include "VertexBuffer.h"
 #include "Renderer.h"
 
-VertexBuffer::VertexBuffer(const void* data, unsigned int size)
+VertexBuffer::VertexBuffer(const void* data, unsigned int size) : 
+	m_Size(size)
 {
 	glGenBuffers(1, &m_RendererID); // Generates data that will go on GPU
 	glBindBuffer(GL_ARRAY_BUFFER, m_RendererID); // What type of buffer should this act as?
