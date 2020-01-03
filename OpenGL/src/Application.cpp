@@ -31,6 +31,26 @@ MessageCallback(GLenum source,
 		type, severity, message);
 }
 
+glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
+glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+
+float deltaTime = 0.0f;	// Time between current frame and last frame
+float lastFrame = 0.0f; // Time of last frame
+
+void ProcessInput(GLFWwindow* window)
+{
+	const float cameraSpeed = 2.5f * deltaTime; // adjust accordingly
+	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+		cameraPos += cameraSpeed * cameraFront;
+	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+		cameraPos -= cameraSpeed * cameraFront;
+	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+		cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+		cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+}
+
 int RunApp()
 {
 	GLFWwindow* window;
@@ -124,10 +144,19 @@ int RunApp()
 	va.AddBuffer(vb, layout);
 
 	glm::mat4 proj = glm::perspective(45.0f, 960.0f / 540.0f, 0.01f, 100.0f);
-	glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, -2.5f));
 	glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0));
 
-	glm::mat4 mvp = proj * view * model;
+	// manual view matrix
+	/*
+	glm::vec3 cameraPos(0, 0, 3.0f);
+	glm::vec3 cameraTarget(0, 0, 0);
+	glm::vec3 cameraDirectionReversed = glm::normalize(cameraPos - cameraTarget);
+	glm::vec3 up = glm::vec3(0, 1.0f, 0);
+	glm::vec3 cameraRight = glm::normalize(glm::cross(up, cameraDirectionReversed));
+	glm::vec3 cameraUp = glm::normalize(glm::cross(cameraDirectionReversed, cameraRight));
+	*/
+
+	glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 
 	Shader shader("res/shaders/Basic.shader");
 	shader.Bind();
@@ -137,6 +166,7 @@ int RunApp()
 	texture.Bind(0);
 	shader.SetUniform1i("u_Texture", 0);
 
+	glm::mat4 mvp;
 
 	va.Unbind();
 	vb.Unbind();
@@ -144,19 +174,24 @@ int RunApp()
 
 	Renderer renderer;
 
-	float yaw = 0.0f;
 
 	/* Loop until the user closes the window */
 	while (!glfwWindowShouldClose(window))
 	{
 		renderer.Clear();
 
+		ProcessInput(window);
+
+		float currentFrame = glfwGetTime();
+		deltaTime = currentFrame - lastFrame;
+		lastFrame = currentFrame;
+
 		shader.Bind();
 
-		model = glm::rotate(glm::mat4(1.0f), (float)glfwGetTime() * glm::radians(50.0f), glm::vec3(1, 0, 0));
+		view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 		mvp = proj * view * model;
+
 		shader.SetUniformMat4f("u_MVP", mvp);
-		
 		
 		renderer.Draw(va, shader);
 
