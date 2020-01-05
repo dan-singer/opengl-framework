@@ -224,9 +224,15 @@ int RunApp()
 
 	Shader basicLitShader("res/shaders/BasicLit.vs", "res/shaders/BasicLit.fs");
 	basicLitShader.Bind();
-	basicLitShader.SetUniform3f("objectColor", 1.0f, 0.5f, 0.31f);
-	basicLitShader.SetUniform3f("lightColor", 1.0f, 1.0f, 1.0f);
-	basicLitShader.SetUniform3f("lightPos", lightPos);
+	basicLitShader.SetUniform3f("material.ambient", 1.0f, 0.5f, 0.31f);
+	basicLitShader.SetUniform3f("material.diffuse", 1.0f, 0.5f, 0.31f);
+	basicLitShader.SetUniform3f("material.specular", 0.5f, 0.5f, 0.5f);
+	basicLitShader.SetUniform1f("material.shininess", 32.0f);
+
+	basicLitShader.SetUniform3f("light.ambient", 0.2f, 0.2f, 0.2f);
+	basicLitShader.SetUniform3f("light.diffuse", 0.5f, 0.5f, 0.5f);
+	basicLitShader.SetUniform3f("light.specular", 1.0f, 1.0f, 1.0f);
+	basicLitShader.SetUniform3f("light.position", lightPos);
 
 	Shader colorShader("res/shaders/BasicLit.vs", "res/shaders/Color.fs");
 
@@ -249,7 +255,6 @@ int RunApp()
 		glm::vec3 radiusVec(cos(glm::radians(lightAngle)), 0.0f, sin(glm::radians(lightAngle)));
 		radiusVec *= lightRadius;
 		lightPos = lightOrigin + radiusVec;
-
 		lightAngle += lightSpeed * deltaTime;
 
 
@@ -258,7 +263,7 @@ int RunApp()
 		basicLitShader.SetUniformMat4f("model", cubeModel);
 		basicLitShader.SetUniformMat4f("view", camera->GetView());
 		basicLitShader.SetUniformMat4f("projection", camera->GetProjection());
-		basicLitShader.SetUniform3f("lightPos", lightPos);
+		basicLitShader.SetUniform3f("light.position", lightPos);
 		basicLitShader.SetUniform3f("viewPos", camera->GetPosition());
 
 		cubeVA.Bind();
