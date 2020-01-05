@@ -42,6 +42,9 @@ bool firstMouse = true;
 float lastX = width / 2.0f;
 float lastY = height / 2.0f;
 
+bool modulateColors = false;
+
+
 glm::vec3 lightPos(0.0f, 0.0f, 0.0f);
 
 void MouseCallback(GLFWwindow* window, double xpos, double ypos)
@@ -257,6 +260,15 @@ int RunApp()
 		lightPos = lightOrigin + radiusVec;
 		lightAngle += lightSpeed * deltaTime;
 
+		// Funky colors
+		glm::vec3 lightColor;
+		lightColor.x = sin(glfwGetTime() * 2.0f);
+		lightColor.y = sin(glfwGetTime() * 0.7f);
+		lightColor.z = sin(glfwGetTime() * 1.3f);
+		glm::vec3 diffuseColor = lightColor * glm::vec3(0.5f);
+		glm::vec3 ambientColor = diffuseColor * glm::vec3(0.2f);
+
+
 
 		// Draw Cube
 		basicLitShader.Bind();
@@ -265,6 +277,14 @@ int RunApp()
 		basicLitShader.SetUniformMat4f("projection", camera->GetProjection());
 		basicLitShader.SetUniform3f("light.position", lightPos);
 		basicLitShader.SetUniform3f("viewPos", camera->GetPosition());
+
+		if (modulateColors) 
+		{
+			basicLitShader.SetUniform3f("light.diffuse", diffuseColor);
+			basicLitShader.SetUniform3f("light.ambient", ambientColor);
+		}
+
+
 
 		cubeVA.Bind();
 		glDrawArrays(GL_TRIANGLES, 0, cubeVA.GetVb().GetVertexCount());
