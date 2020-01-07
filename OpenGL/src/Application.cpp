@@ -17,6 +17,8 @@
 #include <glm/gtx/quaternion.hpp>
 #include "Camera.h"
 
+#include <assimp/Importer.hpp>
+
 // https://www.khronos.org/opengl/wiki/OpenGL_Error
 void GLAPIENTRY
 MessageCallback(GLenum source,
@@ -286,7 +288,7 @@ int RunApp()
 		basicLitShader.SetUniform1i("material.emission", 2);
 		basicLitShader.SetUniform1f("material.shininess", 32.0f);
 
-		basicLitShader.SetUniform3f("directionLight.direction", dirLightDirection);
+		basicLitShader.SetUniform3f("directionalLight.direction", dirLightDirection);
 		basicLitShader.SetUniform3f("directionalLight.ambient", 0.2f, 0.2f, 0.2f);
 		basicLitShader.SetUniform3f("directionalLight.diffuse", 0.5f, 0.5f, 0.5f);
 		basicLitShader.SetUniform3f("directionalLight.specular", 1.0f, 1.0f, 1.0f);
