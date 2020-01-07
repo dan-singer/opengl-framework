@@ -44,8 +44,8 @@ float lastY = height / 2.0f;
 
 bool modulateColors = false;
 
-
-glm::vec3 lightPos(0.0f, 0.0f, 0.0f);
+constexpr int NUM_LIGHTS = 4;
+glm::vec3 dirLightDirection(-0.2f, -1.0f, -0.3f);
 
 void MouseCallback(GLFWwindow* window, double xpos, double ypos)
 {
@@ -170,6 +170,20 @@ int RunApp()
 		glm::vec3(-1.3f,  1.0f, -1.5f)
 	};
 
+	glm::vec3 pointLightPositions[NUM_LIGHTS] = {
+		glm::vec3(0.7f,  0.2f,  2.0f),
+		glm::vec3(2.3f, -3.3f, -4.0f),
+		glm::vec3(-4.0f,  2.0f, -12.0f),
+		glm::vec3(0.0f,  0.0f, -3.0f)
+	};
+
+	glm::vec3 pointLightColors[NUM_LIGHTS] = {
+		glm::vec3(1.0f, 1.0f, 1.0f),
+		glm::vec3(0.7f, 0.8f, 0.9f),
+		glm::vec3(1.0f, 0.0f, 0.2f),
+		glm::vec3(0.0f, 1.0f, 0.0f)
+	};
+
 	float vertices[] = {
 		// positions          // normals           // texture coords
 		-0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,
@@ -235,42 +249,22 @@ int RunApp()
 	lightLayout.Push<float>(2);
 	lightVA.AddBuffer(cubeVB, lightLayout);
 
-
 	glm::mat4 cubeModel = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0));
-	glm::mat4 lightModel = glm::translate(glm::mat4(1.0f), lightPos);
-	lightModel = glm::scale(lightModel, glm::vec3(0.2f));
 
 	Shader basicLitShader("res/shaders/BasicLit.vs", "res/shaders/BasicLit.fs");
-	basicLitShader.Bind();
-	basicLitShader.SetUniform1i("material.diffuse", 0);
-	basicLitShader.SetUniform1i("material.specular", 1);
-	basicLitShader.SetUniform1i("material.emission", 2);
-	basicLitShader.SetUniform1f("material.shininess", 32.0f);
-
-	basicLitShader.SetUniform3f("light.ambient", 0.2f, 0.2f, 0.2f);
-	basicLitShader.SetUniform3f("light.diffuse", 0.5f, 0.5f, 0.5f);
-	basicLitShader.SetUniform3f("light.specular", 1.0f, 1.0f, 1.0f);
-	basicLitShader.SetUniform1f("light.constant", 1.0f);
-	basicLitShader.SetUniform1f("light.linear", 0.09f);
-	basicLitShader.SetUniform1f("light.quadratic", 0.032f);
-
 	Shader colorShader("res/shaders/BasicLit.vs", "res/shaders/Color.fs");
 
-	camera = new Camera(glm::vec3(0, 0, 3), 2.5f, width, height);
-	
 	Texture diffuse("res/textures/container2.png");
 	Texture specular("res/textures/container2_specular.png");
-	Texture emission("res/textures/emission.jpg");
 
 	diffuse.Bind(0);
 	specular.Bind(1);
-	//emission.Bind(2);
 
-	float lightRadius = 1.0f;
-	float lightAngle = 0.0f;
-	float lightSpeed = 20.0f; // HA!
-	glm::vec3 lightOrigin = lightPos;
-	/* Loop until the user closes the window */
+
+
+
+	camera = new Camera(glm::vec3(0, 0, 3), 2.5f, width, height);
+
 	while (!glfwWindowShouldClose(window))
 	{
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -281,37 +275,43 @@ int RunApp()
 		deltaTime = currentFrame - lastFrame;
 		lastFrame = currentFrame;
 
-		// Light movement
-		glm::vec3 radiusVec(cos(glm::radians(lightAngle)), 0.0f, sin(glm::radians(lightAngle)));
-		radiusVec *= lightRadius;
-		lightPos = lightOrigin + radiusVec;
-		lightAngle += lightSpeed * deltaTime;
-
-		// Funky colors
-		glm::vec3 lightColor;
-		lightColor.x = sin(glfwGetTime() * 2.0f);
-		lightColor.y = sin(glfwGetTime() * 0.7f);
-		lightColor.z = sin(glfwGetTime() * 1.3f);
-		glm::vec3 diffuseColor = lightColor * glm::vec3(0.5f);
-		glm::vec3 ambientColor = diffuseColor * glm::vec3(0.2f);
-
-
-		// Cube Shader
+		// Basic Lit Shader (Phong)
 		basicLitShader.Bind();
 		basicLitShader.SetUniformMat4f("view", camera->GetView());
 		basicLitShader.SetUniformMat4f("projection", camera->GetProjection());
-		basicLitShader.SetUniform3f("light.position", camera->GetPosition());
-		basicLitShader.SetUniform3f("light.direction", camera->GetForward());
-		basicLitShader.SetUniform1f("light.cutoff", glm::cos(glm::radians(12.5f)));
-		basicLitShader.SetUniform1f("light.outerCutoff", glm::cos(glm::radians(17.5f)));
-
 		basicLitShader.SetUniform3f("viewPos", camera->GetPosition());
 
-		if (modulateColors) 
+		basicLitShader.SetUniform1i("material.diffuse", 0);
+		basicLitShader.SetUniform1i("material.specular", 1);
+		basicLitShader.SetUniform1i("material.emission", 2);
+		basicLitShader.SetUniform1f("material.shininess", 32.0f);
+
+		basicLitShader.SetUniform3f("directionLight.direction", dirLightDirection);
+		basicLitShader.SetUniform3f("directionalLight.ambient", 0.2f, 0.2f, 0.2f);
+		basicLitShader.SetUniform3f("directionalLight.diffuse", 0.5f, 0.5f, 0.5f);
+		basicLitShader.SetUniform3f("directionalLight.specular", 1.0f, 1.0f, 1.0f);
+
+		for (int i = 0; i < NUM_LIGHTS; ++i)
 		{
-			basicLitShader.SetUniform3f("light.diffuse", diffuseColor);
-			basicLitShader.SetUniform3f("light.ambient", ambientColor);
+			std::string iStr = std::to_string(i);
+			basicLitShader.SetUniform3f("pointLights[" + iStr + "].position", pointLightPositions[i]);
+			basicLitShader.SetUniform3f("pointLights[" + iStr + "].ambient", 0.2f, 0.2f, 0.2f);
+			basicLitShader.SetUniform3f("pointLights[" + iStr + "].diffuse", pointLightColors[i]);
+			basicLitShader.SetUniform3f("pointLights[" + iStr + "].specular", 1.0f, 1.0f, 1.0f);
+
+			basicLitShader.SetUniform1f("pointLights[" + iStr + "].constant", 1.0f);
+			basicLitShader.SetUniform1f("pointLights[" + iStr + "].linear", 0.09f);
+			basicLitShader.SetUniform1f("pointLights[" + iStr + "].quadratic", 0.032f);
 		}
+
+		basicLitShader.SetUniform3f("spotLight.direction", camera->GetForward());
+		basicLitShader.SetUniform3f("spotLight.position", camera->GetPosition());
+		basicLitShader.SetUniform3f("spotLight.ambient", 0.2f, 0.2f, 0.2f);
+		basicLitShader.SetUniform3f("spotLight.diffuse", 0.5f, 0.5f, 0.5f);
+		basicLitShader.SetUniform3f("spotLight.specular", 1.0f, 1.0f, 1.0f);
+		basicLitShader.SetUniform1f("spotLight.cutoff", glm::cos(glm::radians(12.5f)));
+		basicLitShader.SetUniform1f("spotLight.outerCutoff", glm::cos(glm::radians(17.5f)));
+
 
 		cubeVA.Bind();
 		for (unsigned int i = 0; i < 10; ++i)
@@ -325,16 +325,19 @@ int RunApp()
 			glDrawArrays(GL_TRIANGLES, 0, cubeVA.GetVb().GetVertexCount()); 
 		}
 
-		// Draw Light Source
-		lightModel = glm::translate(glm::mat4(1.0f), lightPos);
-		lightModel = glm::scale(lightModel, glm::vec3(0.2f));
-
 		colorShader.Bind();
-		colorShader.SetUniformMat4f("model", lightModel);
 		colorShader.SetUniformMat4f("view", camera->GetView());
 		colorShader.SetUniformMat4f("projection", camera->GetProjection());
 		lightVA.Bind();
-		glDrawArrays(GL_TRIANGLES, 0, lightVA.GetVb().GetVertexCount());
+		for (int i = 0; i < NUM_LIGHTS; ++i)
+		{
+			glm::mat4 model(1.0f);
+			model = glm::translate(model, pointLightPositions[i]);
+			model = glm::scale(model, glm::vec3(0.2f, 0.2f, 0.2f));
+			colorShader.SetUniformMat4f("model", model);
+			colorShader.SetUniform3f("emission", pointLightColors[i]);
+			glDrawArrays(GL_TRIANGLES, 0, lightVA.GetVb().GetVertexCount());
+		}
 
 		/* Swap front and back buffers */
 		glfwSwapBuffers(window);
