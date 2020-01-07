@@ -1,14 +1,14 @@
 #include "Texture.h"
 #include "vendor/stb_image/stb_image.h"
 
-Texture::Texture(const std::string& path) :
-	m_RendererID(0), m_FilePath(path), m_LocalBuffer(nullptr), m_Width(0), m_Height(0), m_BPP(0)
+Texture_OLD::Texture_OLD(const std::string& path) :
+	m_ID(0), m_FilePath(path), m_LocalBuffer(nullptr), m_Width(0), m_Height(0), m_BPP(0)
 {
 	stbi_set_flip_vertically_on_load(1); // b/c of OpenGL coordinate system
 	m_LocalBuffer = stbi_load(path.c_str(), &m_Width, &m_Height, &m_BPP, 4);
 
-	glGenTextures(1, &m_RendererID);
-	glBindTexture(GL_TEXTURE_2D, m_RendererID);
+	glGenTextures(1, &m_ID);
+	glBindTexture(GL_TEXTURE_2D, m_ID);
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -23,19 +23,24 @@ Texture::Texture(const std::string& path) :
 	}
 }
 
-void Texture::Bind(unsigned int slot) const
+void Texture_OLD::Bind(unsigned int slot) const
 {
 	glActiveTexture(GL_TEXTURE0 + slot);
-	glBindTexture(GL_TEXTURE_2D, m_RendererID);
+	glBindTexture(GL_TEXTURE_2D, m_ID);
 }
 
-void Texture::Unbind() const
+void Texture_OLD::Unbind() const
 {
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-Texture::~Texture()
+
+
+
+Texture_OLD::~Texture_OLD()
 {
-	glDeleteTextures(1, &m_RendererID);
+	glDeleteTextures(1, &m_ID);
 }
+
+
 

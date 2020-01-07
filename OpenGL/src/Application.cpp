@@ -256,8 +256,8 @@ int RunApp()
 	Shader basicLitShader("res/shaders/BasicLit.vs", "res/shaders/BasicLit.fs");
 	Shader colorShader("res/shaders/BasicLit.vs", "res/shaders/Color.fs");
 
-	Texture diffuse("res/textures/container2.png");
-	Texture specular("res/textures/container2_specular.png");
+	Texture_OLD diffuse("res/textures/container2.png");
+	Texture_OLD specular("res/textures/container2_specular.png");
 
 	diffuse.Bind(0);
 	specular.Bind(1);
