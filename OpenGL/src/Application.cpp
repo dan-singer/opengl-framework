@@ -157,6 +157,19 @@ int RunApp()
 
 	std::cout << glGetString(GL_VERSION) << "\n";
 
+	glm::vec3 cubePositions[] = {
+		glm::vec3(0.0f,  0.0f,  0.0f),
+		glm::vec3(2.0f,  5.0f, -15.0f),
+		glm::vec3(-1.5f, -2.2f, -2.5f),
+		glm::vec3(-3.8f, -2.0f, -12.3f),
+		glm::vec3(2.4f, -0.4f, -3.5f),
+		glm::vec3(-1.7f,  3.0f, -7.5f),
+		glm::vec3(1.3f, -2.0f, -2.5f),
+		glm::vec3(1.5f,  2.0f, -2.5f),
+		glm::vec3(1.5f,  0.2f, -1.5f),
+		glm::vec3(-1.3f,  1.0f, -1.5f)
+	};
+
 	float vertices[] = {
 		// positions          // normals           // texture coords
 		-0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,
@@ -237,7 +250,9 @@ int RunApp()
 	basicLitShader.SetUniform3f("light.ambient", 0.2f, 0.2f, 0.2f);
 	basicLitShader.SetUniform3f("light.diffuse", 0.5f, 0.5f, 0.5f);
 	basicLitShader.SetUniform3f("light.specular", 1.0f, 1.0f, 1.0f);
-	basicLitShader.SetUniform3f("light.position", lightPos);
+	basicLitShader.SetUniform1f("light.constant", 1.0f);
+	basicLitShader.SetUniform1f("light.linear", 0.09f);
+	basicLitShader.SetUniform1f("light.quadratic", 0.032f);
 
 	Shader colorShader("res/shaders/BasicLit.vs", "res/shaders/Color.fs");
 
@@ -249,7 +264,7 @@ int RunApp()
 
 	diffuse.Bind(0);
 	specular.Bind(1);
-	emission.Bind(2);
+	//emission.Bind(2);
 
 	float lightRadius = 1.0f;
 	float lightAngle = 0.0f;
@@ -281,12 +296,15 @@ int RunApp()
 		glm::vec3 ambientColor = diffuseColor * glm::vec3(0.2f);
 
 
-		// Draw Cube
+		// Cube Shader
 		basicLitShader.Bind();
-		basicLitShader.SetUniformMat4f("model", cubeModel);
 		basicLitShader.SetUniformMat4f("view", camera->GetView());
 		basicLitShader.SetUniformMat4f("projection", camera->GetProjection());
-		basicLitShader.SetUniform3f("light.position", lightPos);
+		basicLitShader.SetUniform3f("light.position", camera->GetPosition());
+		basicLitShader.SetUniform3f("light.direction", camera->GetForward());
+		basicLitShader.SetUniform1f("light.cutoff", glm::cos(glm::radians(12.5f)));
+		basicLitShader.SetUniform1f("light.outerCutoff", glm::cos(glm::radians(17.5f)));
+
 		basicLitShader.SetUniform3f("viewPos", camera->GetPosition());
 
 		if (modulateColors) 
@@ -295,10 +313,17 @@ int RunApp()
 			basicLitShader.SetUniform3f("light.ambient", ambientColor);
 		}
 
-
-
 		cubeVA.Bind();
-		glDrawArrays(GL_TRIANGLES, 0, cubeVA.GetVb().GetVertexCount());
+		for (unsigned int i = 0; i < 10; ++i)
+		{
+			glm::mat4 model(1.0f);
+			model = glm::translate(model, cubePositions[i]);
+			float angle = glm::radians(20.0f) * i;
+			model = glm::rotate(model, angle, glm::vec3(1.0f, 0.3f, 0.5f));
+
+			basicLitShader.SetUniformMat4f("model", model);
+			glDrawArrays(GL_TRIANGLES, 0, cubeVA.GetVb().GetVertexCount()); 
+		}
 
 		// Draw Light Source
 		lightModel = glm::translate(glm::mat4(1.0f), lightPos);

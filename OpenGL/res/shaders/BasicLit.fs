@@ -14,9 +14,18 @@ uniform Material material;
 
 struct Light {
     vec3 position;
+    vec3 direction;
+
     vec3 ambient;
     vec3 diffuse;
     vec3 specular;
+
+    float constant;
+    float linear;
+    float quadratic;
+
+    float cutoff;
+    float outerCutoff;
 };
 uniform Light light;
 
@@ -32,6 +41,7 @@ void main()
     // Diffuse
     vec3 norm = normalize(v_Normal);
     vec3 toLight = normalize(light.position - v_FragPos);
+    // vec3 toLight = normalize(-light.direction);
     float diffStrength = max(dot(norm, toLight), 0);
     vec3 diffuse = light.diffuse * (diffStrength * vec3(texture(material.diffuse, v_TexCoords)));
 
@@ -54,7 +64,22 @@ void main()
     // Emission
     vec3 emissive = vec3(texture(material.emission, v_TexCoords));
 
+    // Attenuation
+    // float dist = length(v_FragPos - light.position);
+    // float attenuation = 1.0 / (light.constant + light.linear * dist + light.quadratic * dist * dist);
+    // ambient *= attenuation;
+    // diffuse *= attenuation;
+    // specular *= attenuation;
+
+    float theta = dot(toLight, normalize(-light.direction));
+    float epsilon = light.cutoff - light.outerCutoff;
+    float intensity = clamp((theta - light.outerCutoff) / epsilon, 0.0, 1.0);
+    diffuse *= intensity;
+    specular *= intensity;
     // Combine
     vec3 result = ambient + diffuse + specular + emissive;
     FragColor = vec4(result, 1.0);
+
+
+
 }
