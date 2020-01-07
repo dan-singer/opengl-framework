@@ -21,4 +21,6 @@ private:
 public:
 	Model(const char* path);
 	void Draw(Shader& shader);
+
+	// TODO implement proper destructor!
 };
