@@ -10,7 +10,7 @@
 #include "VertexArray.h"
 #include "Shader.h"
 #include "VertexBufferLayout.h"
-#include "Texture.h"
+#include "Model.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -159,19 +159,6 @@ int RunApp()
 
 	std::cout << glGetString(GL_VERSION) << "\n";
 
-	glm::vec3 cubePositions[] = {
-		glm::vec3(0.0f,  0.0f,  0.0f),
-		glm::vec3(2.0f,  5.0f, -15.0f),
-		glm::vec3(-1.5f, -2.2f, -2.5f),
-		glm::vec3(-3.8f, -2.0f, -12.3f),
-		glm::vec3(2.4f, -0.4f, -3.5f),
-		glm::vec3(-1.7f,  3.0f, -7.5f),
-		glm::vec3(1.3f, -2.0f, -2.5f),
-		glm::vec3(1.5f,  2.0f, -2.5f),
-		glm::vec3(1.5f,  0.2f, -1.5f),
-		glm::vec3(-1.3f,  1.0f, -1.5f)
-	};
-
 	glm::vec3 pointLightPositions[NUM_LIGHTS] = {
 		glm::vec3(0.7f,  0.2f,  2.0f),
 		glm::vec3(2.3f, -3.3f, -4.0f),
@@ -186,84 +173,14 @@ int RunApp()
 		glm::vec3(0.0f, 1.0f, 0.0f)
 	};
 
-	float vertices[] = {
-		// positions          // normals           // texture coords
-		-0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,
-		 0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 0.0f,
-		 0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,
-		 0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,
-		-0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 1.0f,
-		-0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,
-
-		-0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 0.0f,
-		 0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 0.0f,
-		 0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 1.0f,
-		 0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 1.0f,
-		-0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 1.0f,
-		-0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 0.0f,
-
-		-0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
-		-0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 1.0f,
-		-0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-		-0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-		-0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 0.0f,
-		-0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
-
-		 0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
-		 0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f,
-		 0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-		 0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-		 0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 0.0f,
-		 0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
-
-		-0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,
-		 0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 1.0f,
-		 0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,
-		 0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,
-		-0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 0.0f,
-		-0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,
-
-		-0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f,
-		 0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 1.0f,
-		 0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,
-		 0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,
-		-0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 0.0f,
-		-0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f
-	};
-
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_BLEND);
-
-	// Vertex array objects bind vertex buffers with the layout of their vertices specified in glVertexAttribPointer
-	VertexArray cubeVA;
-	VertexBuffer cubeVB(vertices, sizeof(vertices), 36);
-
-	VertexBufferLayout cubeLayout;
-	cubeLayout.Push<float>(3);
-	cubeLayout.Push<float>(3);
-	cubeLayout.Push<float>(2);
-	cubeVA.AddBuffer(cubeVB, cubeLayout);
-
-	VertexArray lightVA;
-	VertexBufferLayout lightLayout;
-	lightLayout.Push<float>(3);
-	lightLayout.Push<float>(3);
-	lightLayout.Push<float>(2);
-	lightVA.AddBuffer(cubeVB, lightLayout);
-
-	glm::mat4 cubeModel = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0));
 
 	Shader basicLitShader("res/shaders/BasicLit.vs", "res/shaders/BasicLit.fs");
 	Shader colorShader("res/shaders/BasicLit.vs", "res/shaders/Color.fs");
 
-	Texture_OLD diffuse("res/textures/container2.png");
-	Texture_OLD specular("res/textures/container2_specular.png");
-
-	diffuse.Bind(0);
-	specular.Bind(1);
-
-
-
+	Model actor("res/models/nanosuit/nanosuit.obj");
+	Model cube("res/models/cube/cube.obj");
 
 	camera = new Camera(glm::vec3(0, 0, 3), 2.5f, width, height);
 
@@ -283,9 +200,6 @@ int RunApp()
 		basicLitShader.SetUniformMat4f("projection", camera->GetProjection());
 		basicLitShader.SetUniform3f("viewPos", camera->GetPosition());
 
-		basicLitShader.SetUniform1i("material.diffuse", 0);
-		basicLitShader.SetUniform1i("material.specular", 1);
-		basicLitShader.SetUniform1i("material.emission", 2);
 		basicLitShader.SetUniform1f("material.shininess", 32.0f);
 
 		basicLitShader.SetUniform3f("directionalLight.direction", dirLightDirection);
@@ -306,6 +220,12 @@ int RunApp()
 			basicLitShader.SetUniform1f("pointLights[" + iStr + "].quadratic", 0.032f);
 		}
 
+		glm::mat4 model(1.0f);
+		model = glm::translate(model, glm::vec3(0, -2.0f, 0));
+		model = glm::scale(model, glm::vec3(0.2f, 0.2, 0.2f));
+		basicLitShader.SetUniformMat4f("model", model);
+		actor.Draw(basicLitShader);
+
 		basicLitShader.SetUniform3f("spotLight.direction", camera->GetForward());
 		basicLitShader.SetUniform3f("spotLight.position", camera->GetPosition());
 		basicLitShader.SetUniform3f("spotLight.ambient", 0.2f, 0.2f, 0.2f);
@@ -315,22 +235,9 @@ int RunApp()
 		basicLitShader.SetUniform1f("spotLight.outerCutoff", glm::cos(glm::radians(17.5f)));
 
 
-		cubeVA.Bind();
-		for (unsigned int i = 0; i < 10; ++i)
-		{
-			glm::mat4 model(1.0f);
-			model = glm::translate(model, cubePositions[i]);
-			float angle = glm::radians(20.0f) * i;
-			model = glm::rotate(model, angle, glm::vec3(1.0f, 0.3f, 0.5f));
-
-			basicLitShader.SetUniformMat4f("model", model);
-			glDrawArrays(GL_TRIANGLES, 0, cubeVA.GetVb().GetVertexCount()); 
-		}
-
 		colorShader.Bind();
 		colorShader.SetUniformMat4f("view", camera->GetView());
 		colorShader.SetUniformMat4f("projection", camera->GetProjection());
-		lightVA.Bind();
 		for (int i = 0; i < NUM_LIGHTS; ++i)
 		{
 			glm::mat4 model(1.0f);
@@ -338,7 +245,7 @@ int RunApp()
 			model = glm::scale(model, glm::vec3(0.2f, 0.2f, 0.2f));
 			colorShader.SetUniformMat4f("model", model);
 			colorShader.SetUniform3f("emission", pointLightColors[i]);
-			glDrawArrays(GL_TRIANGLES, 0, lightVA.GetVb().GetVertexCount());
+			cube.Draw(colorShader);
 		}
 
 		/* Swap front and back buffers */

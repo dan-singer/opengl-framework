@@ -18,6 +18,6 @@ private:
 	Mesh ProcessMesh(aiMesh* mesh, const aiScene* scene);
 	std::vector<Texture> LoadMaterialTextures(aiMaterial* mat, aiTextureType type);
 public:
-	Model(char* path);
+	Model(const char* path);
 	void Draw(Shader& shader);
 };

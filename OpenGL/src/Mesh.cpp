@@ -52,19 +52,19 @@ void Mesh::Draw(Shader& shader)
 	unsigned int specNum = 0;
 	for (unsigned int i = 0; i < m_Textures.size(); ++i)
 	{
+		glActiveTexture(GL_TEXTURE0 + i);
 		std::string number;
 		std::string typeName = m_Textures[i].GetTypeString();
 		switch (m_Textures[i].type)
 		{
-		case DIFFUSE:
+		case aiTextureType_DIFFUSE:
 			number = std::to_string(diffuseNum++);
 			break;
-		case SPECULAR:
+		case aiTextureType_SPECULAR:
 			number = std::to_string(specNum++);
 			break;
 		}
-		shader.SetUniform1f("material.texture_" + typeName + number, m_Textures[i].id);
-		glActiveTexture(GL_TEXTURE0 + i);
+		shader.SetUniform1i("material.texture_" + typeName + number, i);
 		glBindTexture(GL_TEXTURE_2D, m_Textures[i].id);
 	}
 	glActiveTexture(GL_TEXTURE0);

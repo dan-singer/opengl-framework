@@ -5,7 +5,7 @@
 
 unsigned int Model::TextureFromFile(const char* name, std::string directory)
 {
-	std::string path = directory + name;
+	std::string path = directory + "/" + name;
 	stbi_set_flip_vertically_on_load(1); // b/c of OpenGL coordinate system
 	int width, height, bpp;
 	unsigned char* buffer = stbi_load(path.c_str(), &width, &height, &bpp, 4);
@@ -137,7 +137,7 @@ std::vector<Texture> Model::LoadMaterialTextures(aiMaterial* mat, aiTextureType 
 	return textures;
 }
 
-Model::Model(char* path)
+Model::Model(const char* path)
 {
 	LoadModel(path);
 }
