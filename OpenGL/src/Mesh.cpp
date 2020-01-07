@@ -1,7 +1,5 @@
 #include "Mesh.h"
 
-
-
 void Mesh::SetupMesh()
 {
 	// Setup the vertex array
@@ -40,7 +38,7 @@ void Mesh::SetupMesh()
 	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const void*)offsetof(Vertex, texCoords));
 }
 
-Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::vector<Texture> textures) :
+Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::vector<Texture*> textures) :
 	m_Vertices(vertices), m_Indices(indices), m_Textures(textures)
 {
 	SetupMesh();
@@ -52,10 +50,9 @@ void Mesh::Draw(Shader& shader)
 	unsigned int specNum = 0;
 	for (unsigned int i = 0; i < m_Textures.size(); ++i)
 	{
-		glActiveTexture(GL_TEXTURE0 + i);
 		std::string number;
-		std::string typeName = m_Textures[i].GetTypeString();
-		switch (m_Textures[i].type)
+		std::string typeName = m_Textures[i]->GetTypeString();
+		switch (m_Textures[i]->GetType())
 		{
 		case aiTextureType_DIFFUSE:
 			number = std::to_string(diffuseNum++);
@@ -65,7 +62,7 @@ void Mesh::Draw(Shader& shader)
 			break;
 		}
 		shader.SetUniform1i("material.texture_" + typeName + number, i);
-		glBindTexture(GL_TEXTURE_2D, m_Textures[i].id);
+		m_Textures[i]->Bind(i);
 	}
 	glActiveTexture(GL_TEXTURE0);
 
@@ -76,13 +73,4 @@ void Mesh::Draw(Shader& shader)
 }
 
 
-std::string Texture::GetTypeString()
-{
-	switch (type)
-	{
-	case aiTextureType_DIFFUSE: return "diffuse";
-	case aiTextureType_SPECULAR: return "specular";
-	default: return "invalid";
-	}
 
-}

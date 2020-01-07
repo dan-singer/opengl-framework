@@ -5,18 +5,19 @@
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
+#include "Texture.h"
+#include <map>
 
 class Model {
 private:
 	std::vector<Mesh> m_Meshes;
-	std::vector<Texture> m_TexturesLoaded;
+	std::map<std::string, Texture*> m_LoadedTextures;
 	std::string m_Directory;
 private:
-	unsigned int TextureFromFile(const char* name, std::string directory);
 	void LoadModel(std::string path);
 	void ProcessNode(aiNode* node, const aiScene* scene);
 	Mesh ProcessMesh(aiMesh* mesh, const aiScene* scene);
-	std::vector<Texture> LoadMaterialTextures(aiMaterial* mat, aiTextureType type);
+	std::vector<Texture*> LoadMaterialTextures(aiMaterial* mat, aiTextureType type);
 public:
 	Model(const char* path);
 	void Draw(Shader& shader);

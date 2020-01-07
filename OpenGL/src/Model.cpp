@@ -2,32 +2,6 @@
 #include <iostream>
 #include "vendor/stb_image/stb_image.h"
 
-
-unsigned int Model::TextureFromFile(const char* name, std::string directory)
-{
-	std::string path = directory + "/" + name;
-	stbi_set_flip_vertically_on_load(1); // b/c of OpenGL coordinate system
-	int width, height, bpp;
-	unsigned char* buffer = stbi_load(path.c_str(), &width, &height, &bpp, 4);
-
-	unsigned int id;
-	glGenTextures(1, &id);
-	glBindTexture(GL_TEXTURE_2D, id);
-
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); // horizontal
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); // vertical
-
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
-
-	if (buffer)
-	{
-		stbi_image_free(buffer);
-	}
-	return id;
-}
-
 void Model::LoadModel(std::string path)
 {
 	Assimp::Importer importer;
@@ -58,7 +32,7 @@ Mesh Model::ProcessMesh(aiMesh* mesh, const aiScene* scene)
 {
 	std::vector<Vertex> vertices;
 	std::vector<unsigned int> indices;
-	std::vector<Texture> textures;
+	std::vector<Texture*> textures;
 
 	for (unsigned int i = 0; i < mesh->mNumVertices; ++i)
 	{
@@ -98,41 +72,34 @@ Mesh Model::ProcessMesh(aiMesh* mesh, const aiScene* scene)
 	{
 		aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
 
-		std::vector<Texture> diffuseMaps = LoadMaterialTextures(material, aiTextureType_DIFFUSE);
+		std::vector<Texture*> diffuseMaps = LoadMaterialTextures(material, aiTextureType_DIFFUSE);
 		textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());
 
-		std::vector<Texture> specMaps = LoadMaterialTextures(material, aiTextureType_SPECULAR);
+		std::vector<Texture*> specMaps = LoadMaterialTextures(material, aiTextureType_SPECULAR);
 		textures.insert(textures.end(), specMaps.begin(), specMaps.end());
-
-
 	}
 	return Mesh(vertices, indices, textures);
 }
 
-std::vector<Texture> Model::LoadMaterialTextures(aiMaterial* mat, aiTextureType type)
+std::vector<Texture*> Model::LoadMaterialTextures(aiMaterial* mat, aiTextureType type)
 {
-	std::vector<Texture> textures;
+	std::vector<Texture*> textures;
 	for (unsigned int i = 0; i < mat->GetTextureCount(type); ++i)
 	{
 		aiString str;
 		mat->GetTexture(type, i, &str);
 		bool skip = false;
-		for (unsigned int j = 0; j < m_TexturesLoaded.size(); ++j)
+		if (m_LoadedTextures.count(str.C_Str()) > 0)
 		{
-			if (std::strcmp(m_TexturesLoaded[j].path.data, str.C_Str()) == 0)
-			{
-				textures.push_back(m_TexturesLoaded[j]);
-				skip = true;
-				break;
-			}
+			textures.push_back(m_LoadedTextures[str.C_Str()]);
+			skip = true;
+			break;
 		}
 		if (skip) continue;
 
-		Texture texture;
-		texture.id = TextureFromFile(str.C_Str(), m_Directory);
-		texture.type = type;
-		texture.path = str;
+		Texture* texture = new Texture(m_Directory + "/" + str.C_Str(), type);
 		textures.push_back(texture);
+		m_LoadedTextures[str.C_Str()] = texture;
 	}
 	return textures;
 }
