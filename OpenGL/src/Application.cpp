@@ -42,7 +42,7 @@ float lastX = width / 2.0f;
 float lastY = height / 2.0f;
 
 bool showOutline = false;
-bool drawTransparentWindows = false;
+bool drawTransparentWindows = true;
 
 constexpr int NUM_LIGHTS = 4;
 glm::vec3 dirLightDirection(-0.2f, -1.0f, -0.3f);
@@ -182,6 +182,8 @@ int RunApp()
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_BLEND);
 
+	glEnable(GL_CULL_FACE);
+
 	Shader basicLitShader("res/shaders/BasicLit.vs", "res/shaders/BasicLit.fs");
 	Shader colorShader("res/shaders/BasicLit.vs", "res/shaders/Color.fs");
 	Shader spriteShader("res/shaders/BasicLit.vs", "res/shaders/Sprite.fs");
@@ -280,6 +282,8 @@ int RunApp()
 		// Windows
 		if (drawTransparentWindows)
 		{
+			glDisable(GL_CULL_FACE); // We want windows visible from both angles!
+
 			spriteShader.Bind();
 			spriteShader.SetUniformMat4f("view", camera->GetView());
 			spriteShader.SetUniformMat4f("projection", camera->GetProjection());
@@ -302,6 +306,8 @@ int RunApp()
 				spriteShader.SetUniformMat4f("model", model);
 				plane.Draw(spriteShader);
 			}
+
+			glEnable(GL_CULL_FACE);
 
 		}
 
