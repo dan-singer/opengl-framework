@@ -42,6 +42,7 @@ float lastX = width / 2.0f;
 float lastY = height / 2.0f;
 
 bool showOutline = false;
+bool drawTransparentWindows = false;
 
 constexpr int NUM_LIGHTS = 4;
 glm::vec3 dirLightDirection(-0.2f, -1.0f, -0.3f);
@@ -171,12 +172,12 @@ int RunApp()
 		glm::vec3(0.0f, 1.0f, 0.0f)
 	};
 
-	std::vector<glm::vec3> vegetation;
-	vegetation.push_back(glm::vec3(-1.5f, 0.0f, -0.48f));
-	vegetation.push_back(glm::vec3(1.5f, 0.0f, 0.51f));
-	vegetation.push_back(glm::vec3(0.0f, 0.0f, 0.7f));
-	vegetation.push_back(glm::vec3(-0.3f, 0.0f, -2.3f));
-	vegetation.push_back(glm::vec3(0.5f, 0.0f, -0.6f));
+	std::vector<glm::vec3> windows;
+	windows.push_back(glm::vec3(-1.5f, 0.0f, -0.48f));
+	windows.push_back(glm::vec3(1.5f, 0.0f, 0.51f));
+	windows.push_back(glm::vec3(0.0f, 0.0f, 0.7f));
+	windows.push_back(glm::vec3(-0.3f, 0.0f, -2.3f));
+	windows.push_back(glm::vec3(0.5f, 0.0f, -0.6f));
 
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_BLEND);
@@ -189,7 +190,7 @@ int RunApp()
 	Model cube("res/models/cube/cube.obj");
 	Model plane("res/models/plane/plane.obj");
 
-	Texture grass("res/textures/grass.png", aiTextureType_DIFFUSE);
+	Texture windowTexture("res/textures/blending_transparent_window.png", aiTextureType_DIFFUSE);
 
 	camera = new Camera(glm::vec3(0, 0, 3), 2.5f, width, height);
 
@@ -276,19 +277,28 @@ int RunApp()
 			}
 		}
 
-		// Grass
+		// Windows
+		if (drawTransparentWindows)
 		{
 			spriteShader.Bind();
 			spriteShader.SetUniformMat4f("view", camera->GetView());
 			spriteShader.SetUniformMat4f("projection", camera->GetProjection());
 			spriteShader.SetUniform1i("diffuse", 0);
-			grass.Bind(0);
+			windowTexture.Bind(0);
+
+			// We need to draw transparent objects from furthest away to nearest because
+			// the depth buffer can't help us here
+			std::map<float, glm::vec3> sortedWindows;
+			for (int i = 0; i < windows.size(); ++i)
+			{
+				float distance = glm::length(camera->GetPosition() - windows[i]);
+				sortedWindows[distance] = windows[i];
+			}
 			
-			for (int i = 0; i < vegetation.size(); ++i)
+			for (std::map<float, glm::vec3>::reverse_iterator it = sortedWindows.rbegin(); it != sortedWindows.rend(); ++it)
 			{
 				glm::mat4 model(1.0f);
-				model = glm::translate(model, vegetation[i]);
-				model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0, 0));
+				model = glm::translate(model, it->second);
 				spriteShader.SetUniformMat4f("model", model);
 				plane.Draw(spriteShader);
 			}
