@@ -99,7 +99,6 @@ Texture* windowTexture = nullptr;
 Mesh* screenQuad = nullptr;
 
 unsigned int fbo, fboColorBuffer, rbo;
-unsigned int screenVBO, screenVAO;
 
 void MouseCallback(GLFWwindow* window, double xpos, double ypos)
 {
