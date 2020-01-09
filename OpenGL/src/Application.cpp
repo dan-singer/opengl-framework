@@ -14,6 +14,7 @@
 #include "Camera.h"
 
 #include <assimp/Importer.hpp>
+#include <vector>
 
 // https://www.khronos.org/opengl/wiki/OpenGL_Error
 void GLAPIENTRY
@@ -170,14 +171,25 @@ int RunApp()
 		glm::vec3(0.0f, 1.0f, 0.0f)
 	};
 
+	std::vector<glm::vec3> vegetation;
+	vegetation.push_back(glm::vec3(-1.5f, 0.0f, -0.48f));
+	vegetation.push_back(glm::vec3(1.5f, 0.0f, 0.51f));
+	vegetation.push_back(glm::vec3(0.0f, 0.0f, 0.7f));
+	vegetation.push_back(glm::vec3(-0.3f, 0.0f, -2.3f));
+	vegetation.push_back(glm::vec3(0.5f, 0.0f, -0.6f));
+
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_BLEND);
 
 	Shader basicLitShader("res/shaders/BasicLit.vs", "res/shaders/BasicLit.fs");
 	Shader colorShader("res/shaders/BasicLit.vs", "res/shaders/Color.fs");
+	Shader spriteShader("res/shaders/BasicLit.vs", "res/shaders/Sprite.fs");
 
 	Model actor("res/models/nanosuit/nanosuit.obj");
 	Model cube("res/models/cube/cube.obj");
+	Model plane("res/models/plane/plane.obj");
+
+	Texture grass("res/textures/grass.png", aiTextureType_DIFFUSE);
 
 	camera = new Camera(glm::vec3(0, 0, 3), 2.5f, width, height);
 
@@ -224,7 +236,7 @@ int RunApp()
 		basicLitShader.SetUniform3f("spotLight.specular", 1.0f, 1.0f, 1.0f);
 		basicLitShader.SetUniform1f("spotLight.cutoff", glm::cos(glm::radians(12.5f)));
 		basicLitShader.SetUniform1f("spotLight.outerCutoff", glm::cos(glm::radians(17.5f)));
-		
+
 		if (showOutline)
 		{
 			// Outline effect!
@@ -238,41 +250,69 @@ int RunApp()
 		}
 
 		// Draw the actor(s)
-		glm::mat4 model(1.0f);
-		model = glm::translate(model, glm::vec3(0, -2.0f, 0));
-		model = glm::scale(model, glm::vec3(0.2f, 0.2, 0.2f));
-		basicLitShader.SetUniformMat4f("model", model);
-		actor.Draw(basicLitShader);
-
-
-
-		colorShader.Bind();
-		colorShader.SetUniformMat4f("view", camera->GetView());
-		colorShader.SetUniformMat4f("projection", camera->GetProjection());
-		if (showOutline)
-		{
-			// Finish the outline effect
-			glStencilFunc(GL_NOTEQUAL, 1, 0xff);
-			glStencilMask(0x00); // No writing to stencil buffer
-			glDisable(GL_DEPTH_TEST);
-			colorShader.Bind();
-			colorShader.SetUniformMat4f("model", glm::scale(model, glm::vec3(1.02f, 1.02f, 1.02f)));
-			colorShader.SetUniform3f("emission", 0.0f, 0.0, 1.0f);
-			actor.Draw(colorShader);
-
-			glEnable(GL_DEPTH_TEST);
-			glStencilMask(0xff);
-		}
-
-		for (int i = 0; i < NUM_LIGHTS; ++i)
 		{
 			glm::mat4 model(1.0f);
-			model = glm::translate(model, pointLightPositions[i]);
-			model = glm::scale(model, glm::vec3(0.2f, 0.2f, 0.2f));
-			colorShader.SetUniformMat4f("model", model);
-			colorShader.SetUniform3f("emission", pointLightColors[i]);
-			cube.Draw(colorShader);
+			model = glm::translate(model, glm::vec3(0, -1.5f, 0));
+			model = glm::scale(model, glm::vec3(0.2f, 0.2, 0.2f));
+			basicLitShader.SetUniformMat4f("model", model);
+			actor.Draw(basicLitShader);
+
+
+			if (showOutline)
+			{
+				// Finish the outline effect
+				glStencilFunc(GL_NOTEQUAL, 1, 0xff);
+				glStencilMask(0x00); // No writing to stencil buffer
+				glDisable(GL_DEPTH_TEST);
+				colorShader.Bind();
+				colorShader.SetUniformMat4f("view", camera->GetView());
+				colorShader.SetUniformMat4f("projection", camera->GetProjection());
+				colorShader.SetUniformMat4f("model", glm::scale(model, glm::vec3(1.02f, 1.02f, 1.02f)));
+				colorShader.SetUniform3f("emission", 0.0f, 0.0, 1.0f);
+				actor.Draw(colorShader);
+
+				glEnable(GL_DEPTH_TEST);
+				glStencilMask(0xff);
+			}
 		}
+
+		// Grass
+		{
+			spriteShader.Bind();
+			spriteShader.SetUniformMat4f("view", camera->GetView());
+			spriteShader.SetUniformMat4f("projection", camera->GetProjection());
+			spriteShader.SetUniform1i("diffuse", 0);
+			grass.Bind(0);
+			
+			for (int i = 0; i < vegetation.size(); ++i)
+			{
+				glm::mat4 model(1.0f);
+				model = glm::translate(model, vegetation[i]);
+				model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0, 0));
+				spriteShader.SetUniformMat4f("model", model);
+				plane.Draw(spriteShader);
+			}
+
+		}
+
+
+		// Light visualizers
+		{
+			colorShader.Bind();
+			colorShader.SetUniformMat4f("view", camera->GetView());
+			colorShader.SetUniformMat4f("projection", camera->GetProjection());
+			for (int i = 0; i < NUM_LIGHTS; ++i)
+			{
+				glm::mat4 model(1.0f);
+				model = glm::translate(model, pointLightPositions[i]);
+				model = glm::scale(model, glm::vec3(0.2f, 0.2f, 0.2f));
+				colorShader.SetUniformMat4f("model", model);
+				colorShader.SetUniform3f("emission", pointLightColors[i]);
+				cube.Draw(colorShader);
+			}
+		}
+
+
 
 		/* Swap front and back buffers */
 		glfwSwapBuffers(window);
