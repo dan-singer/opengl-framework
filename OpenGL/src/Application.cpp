@@ -40,7 +40,7 @@ bool firstMouse = true;
 float lastX = width / 2.0f;
 float lastY = height / 2.0f;
 
-bool modulateColors = false;
+bool showOutline = false;
 
 constexpr int NUM_LIGHTS = 4;
 glm::vec3 dirLightDirection(-0.2f, -1.0f, -0.3f);
@@ -153,6 +153,7 @@ int RunApp()
 
 	glEnable(GL_DEPTH_TEST);
 
+
 	std::cout << glGetString(GL_VERSION) << "\n";
 
 	glm::vec3 pointLightPositions[NUM_LIGHTS] = {
@@ -182,7 +183,7 @@ int RunApp()
 
 	while (!glfwWindowShouldClose(window))
 	{
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
 		ProcessInput(window);
 
@@ -190,7 +191,7 @@ int RunApp()
 		deltaTime = currentFrame - lastFrame;
 		lastFrame = currentFrame;
 
-		// Basic Lit Shader (Phong)
+		// Phong shading information
 		basicLitShader.Bind();
 		basicLitShader.SetUniformMat4f("view", camera->GetView());
 		basicLitShader.SetUniformMat4f("projection", camera->GetProjection());
@@ -216,12 +217,6 @@ int RunApp()
 			basicLitShader.SetUniform1f("pointLights[" + iStr + "].quadratic", 0.032f);
 		}
 
-		glm::mat4 model(1.0f);
-		model = glm::translate(model, glm::vec3(0, -2.0f, 0));
-		model = glm::scale(model, glm::vec3(0.2f, 0.2, 0.2f));
-		basicLitShader.SetUniformMat4f("model", model);
-		actor.Draw(basicLitShader);
-
 		basicLitShader.SetUniform3f("spotLight.direction", camera->GetForward());
 		basicLitShader.SetUniform3f("spotLight.position", camera->GetPosition());
 		basicLitShader.SetUniform3f("spotLight.ambient", 0.2f, 0.2f, 0.2f);
@@ -229,11 +224,46 @@ int RunApp()
 		basicLitShader.SetUniform3f("spotLight.specular", 1.0f, 1.0f, 1.0f);
 		basicLitShader.SetUniform1f("spotLight.cutoff", glm::cos(glm::radians(12.5f)));
 		basicLitShader.SetUniform1f("spotLight.outerCutoff", glm::cos(glm::radians(17.5f)));
+		
+		if (showOutline)
+		{
+			// Outline effect!
+			glEnable(GL_STENCIL_TEST);
+			// glStencilOp determines what to do based on when the buffer test passes
+			glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE); // if the test passes, replace value with ref below in glStencilFunc(which is 1)
+			// glStencilFunc determines when a stencil buffer test passes
+			glStencilFunc(GL_ALWAYS, 1, 0xff); // the test always passes
+			// glStencilMask's argument is ANDed with the value of the stencil buffer
+			glStencilMask(0xff); // enable the stencil buffer
+		}
+
+		// Draw the actor(s)
+		glm::mat4 model(1.0f);
+		model = glm::translate(model, glm::vec3(0, -2.0f, 0));
+		model = glm::scale(model, glm::vec3(0.2f, 0.2, 0.2f));
+		basicLitShader.SetUniformMat4f("model", model);
+		actor.Draw(basicLitShader);
+
 
 
 		colorShader.Bind();
 		colorShader.SetUniformMat4f("view", camera->GetView());
 		colorShader.SetUniformMat4f("projection", camera->GetProjection());
+		if (showOutline)
+		{
+			// Finish the outline effect
+			glStencilFunc(GL_NOTEQUAL, 1, 0xff);
+			glStencilMask(0x00); // No writing to stencil buffer
+			glDisable(GL_DEPTH_TEST);
+			colorShader.Bind();
+			colorShader.SetUniformMat4f("model", glm::scale(model, glm::vec3(1.02f, 1.02f, 1.02f)));
+			colorShader.SetUniform3f("emission", 0.0f, 0.0, 1.0f);
+			actor.Draw(colorShader);
+
+			glEnable(GL_DEPTH_TEST);
+			glStencilMask(0xff);
+		}
+
 		for (int i = 0; i < NUM_LIGHTS; ++i)
 		{
 			glm::mat4 model(1.0f);
