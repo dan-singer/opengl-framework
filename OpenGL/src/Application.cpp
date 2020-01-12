@@ -513,3 +513,8 @@ int main(void)
 	return result;
 }
 
+/* Refactoring List
+	- Cubemap
+	- Framebuffer
+	- Light Classes
+*/
