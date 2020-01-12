@@ -109,9 +109,9 @@ Model::Model(const char* path)
 	LoadModel(path);
 }
 
-void Model::Draw(Shader& shader)
+void Model::Draw(Shader& shader, unsigned int skybox)
 {
 	for (unsigned int i = 0; i < m_Meshes.size(); ++i) {
-		m_Meshes[i].Draw(shader);
+		m_Meshes[i].Draw(shader, skybox);
 	}
 }

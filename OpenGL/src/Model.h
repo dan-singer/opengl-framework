@@ -20,7 +20,7 @@ private:
 	std::vector<Texture*> LoadMaterialTextures(aiMaterial* mat, aiTextureType type);
 public:
 	Model(const char* path);
-	void Draw(Shader& shader);
+	void Draw(Shader& shader, unsigned int skybox = 0);
 
 	// TODO implement proper destructor!
 };

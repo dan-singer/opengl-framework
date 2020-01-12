@@ -44,26 +44,28 @@ Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std:
 	SetupMesh();
 }
 
-void Mesh::Draw(Shader& shader)
+void Mesh::Draw(Shader& shader, unsigned int skybox)
 {
 	unsigned int diffuseNum = 0;
 	unsigned int specNum = 0;
+	unsigned int maxTextureTypes = 2;
 	for (unsigned int i = 0; i < m_Textures.size(); ++i)
 	{
-		std::string number;
 		std::string typeName = m_Textures[i]->GetTypeString();
-		switch (m_Textures[i]->GetType())
-		{
-		case aiTextureType_DIFFUSE:
-			number = std::to_string(diffuseNum++);
-			break;
-		case aiTextureType_SPECULAR:
-			number = std::to_string(specNum++);
-			break;
-		}
-		shader.SetUniform1i("material.texture_" + typeName + number, i);
+		shader.SetUniform1i("material." + typeName, i);
 		m_Textures[i]->Bind(i);
 	}
+	if (skybox != 0)
+	{
+		// We use maxTextureTypes rather than m_Textures.size()
+		// If there were 0 textures, diffuse and specular would be assigned to slot 0, but so would 
+		// the skybox! In that case, we'd have multiple texture types in the same texture slot!
+		glActiveTexture(GL_TEXTURE0 + maxTextureTypes);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, skybox);
+	}
+	shader.SetUniform1i("skybox", maxTextureTypes);
+
+
 	glActiveTexture(GL_TEXTURE0);
 
 	// Draw Mesh

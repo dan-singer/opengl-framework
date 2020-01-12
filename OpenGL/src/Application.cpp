@@ -15,6 +15,7 @@
 
 #include <assimp/Importer.hpp>
 #include <vector>
+#include "vendor/stb_image/stb_image.h"
 
 // https://www.khronos.org/opengl/wiki/OpenGL_Error
 void GLAPIENTRY
@@ -42,7 +43,8 @@ float lastX = width / 2.0f;
 float lastY = height / 2.0f;
 
 bool showOutline = false;
-bool drawTransparentWindows = true;
+bool drawTransparentWindows = false;
+bool usePostProcessing = false;
 
 constexpr int NUM_LIGHTS = 4;
 glm::vec3 dirLightDirection(-0.2f, -1.0f, -0.3f);
@@ -89,6 +91,7 @@ Shader* basicLitShader = nullptr;
 Shader* colorShader = nullptr;
 Shader* spriteShader = nullptr;
 Shader* postProcessShader = nullptr;
+Shader* skyboxShader = nullptr;
 
 Model* actor	= nullptr;
 Model* cube		= nullptr;
@@ -99,6 +102,60 @@ Texture* windowTexture = nullptr;
 Mesh* screenQuad = nullptr;
 
 unsigned int fbo, fboColorBuffer, rbo;
+
+unsigned int cubemap;
+std::vector<const char*> cubeMapPaths =
+{
+	"res/textures/skybox/right.jpg",
+	"res/textures/skybox/left.jpg",
+	"res/textures/skybox/top.jpg",
+	"res/textures/skybox/bottom.jpg",
+	"res/textures/skybox/front.jpg",
+	"res/textures/skybox/back.jpg",
+};
+
+unsigned int loadCubemap(const std::vector<const char*>& paths)
+{
+	unsigned int cubemap;
+	glGenTextures(1, &cubemap);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, cubemap);
+
+	int width, height, numChannels;
+	unsigned char* data;
+	for (unsigned int i = 0; i < cubeMapPaths.size(); ++i)
+	{
+		data = stbi_load(cubeMapPaths[i], &width, &height, &numChannels, 0);
+		if (data)
+		{
+			glTexImage2D(
+				GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
+				0,
+				GL_RGB,
+				width,
+				height,
+				0,
+				GL_RGB,
+				GL_UNSIGNED_BYTE,
+				data
+			);
+			stbi_image_free(data);
+		}
+		else
+		{
+			std::cout << "Cubemap texture failed to load at path: " << paths[i] << std::endl;
+			stbi_image_free(data);
+		}
+
+	}
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+	return cubemap;
+}
+
 
 void MouseCallback(GLFWwindow* window, double xpos, double ypos)
 {
@@ -225,7 +282,8 @@ void DrawScene()
 		model = glm::translate(model, glm::vec3(0, -1.5f, 0));
 		model = glm::scale(model, glm::vec3(0.2f, 0.2, 0.2f));
 		basicLitShader->SetUniformMat4f("model", model);
-		actor->Draw(*basicLitShader);
+		basicLitShader->SetUniform1f("material.reflectivity", 0.8f);
+		actor->Draw(*basicLitShader, cubemap);
 
 
 		if (showOutline)
@@ -294,6 +352,19 @@ void DrawScene()
 			cube->Draw(*colorShader);
 		}
 	}
+
+	// Skybox - render last to prevent overdraw
+	{
+		glDisable(GL_CULL_FACE);
+		skyboxShader->Bind();
+		skyboxShader->SetUniformMat4f("projection", camera->GetProjection());
+		glm::mat4 viewNoTranslation = glm::mat4(glm::mat3(camera->GetView()));
+		skyboxShader->SetUniformMat4f("view", viewNoTranslation);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, cubemap);
+		cube->Draw(*skyboxShader);
+		glEnable(GL_CULL_FACE);
+	}
 }
 
 int RunApp()
@@ -338,6 +409,8 @@ int RunApp()
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_BLEND);
 
+	glDepthFunc(GL_LEQUAL);
+
 	glEnable(GL_CULL_FACE);
 
 	// Frame buffer
@@ -365,16 +438,19 @@ int RunApp()
 		std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete";
 		return -1;
 	}
-
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	// Create the fullscreen quad resources
 	screenQuad = new Mesh(quadVertices, quadIndices, std::vector<Texture*>());
 
+	cubemap = loadCubemap(cubeMapPaths);
+
+
 	basicLitShader = new Shader("res/shaders/BasicLit.vs", "res/shaders/BasicLit.fs");
 	colorShader = new Shader("res/shaders/BasicLit.vs", "res/shaders/Color.fs");
 	spriteShader = new Shader("res/shaders/BasicLit.vs", "res/shaders/Sprite.fs");
 	postProcessShader = new Shader("res/shaders/PostProcess.vs", "res/shaders/EdgeDetection.fs");
+	skyboxShader = new Shader("res/shaders/Skybox.vs", "res/shaders/Skybox.fs");
 
 	actor = new Model("res/models/nanosuit/nanosuit.obj");
 	cube = new Model("res/models/cube/cube.obj");
@@ -394,21 +470,28 @@ int RunApp()
 		lastFrame = currentFrame;
 
 		// First Pass
-		glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-		glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
+		if (usePostProcessing)
+		{
+			glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+			glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
+			glEnable(GL_DEPTH_TEST);
+		}
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-		glEnable(GL_DEPTH_TEST);
 		DrawScene();
 
-		// Second Pass
-		glBindFramebuffer(GL_FRAMEBUFFER, 0); // use the regular frame buffer now
-		glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT); // As we're just rendering a quad, color is the only thing that needs to be cleared!
-		postProcessShader->Bind();
-		glDisable(GL_DEPTH_TEST);
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, fboColorBuffer);
-		screenQuad->Draw(*postProcessShader);
+		if (usePostProcessing)
+		{
+			// Second Pass
+			glBindFramebuffer(GL_FRAMEBUFFER, 0); // use the regular frame buffer now
+			glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+			glClear(GL_COLOR_BUFFER_BIT); // As we're just rendering a quad, color is the only thing that needs to be cleared!
+			postProcessShader->Bind();
+			glDisable(GL_DEPTH_TEST);
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, fboColorBuffer);
+			screenQuad->Draw(*postProcessShader, 0);
+		}
+
 
 
 		/* Swap front and back buffers */
