@@ -18,6 +18,8 @@ private:
 public:
 	Shader(const std::string& vs, const std::string& ps);
 
+	unsigned int GetID() { return m_RendererID; }
+
 	void Bind() const;
 	void Unbind() const;
 

@@ -11,6 +11,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/quaternion.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include "Camera.h"
 
 #include <assimp/Importer.hpp>
@@ -101,7 +102,7 @@ Texture* windowTexture = nullptr;
 
 Mesh* screenQuad = nullptr;
 
-unsigned int fbo, fboColorBuffer, rbo;
+unsigned int fbo, fboColorBuffer, rbo, uboMatrices;
 
 unsigned int cubemap;
 std::vector<const char*> cubeMapPaths =
@@ -230,11 +231,19 @@ void ProcessInput(GLFWwindow* window)
 
 void DrawScene()
 {
+	// Set Uniform buffer object data
+	glBindBuffer(GL_UNIFORM_BUFFER, uboMatrices);
+
+	glm::mat4 projection = camera->GetProjection();
+	glm::mat4 view = camera->GetView();
+
+	glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(projection));
+	glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(view));
+	glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+
 	// Phong shading information
 	basicLitShader->Bind();
-	basicLitShader->SetUniformMat4f("view", camera->GetView());
-	basicLitShader->SetUniformMat4f("projection", camera->GetProjection());
-	basicLitShader->SetUniform3f("viewPos", camera->GetPosition());
 				  
 	basicLitShader->SetUniform1f("material.shininess", 32.0f);
 				  
@@ -293,8 +302,6 @@ void DrawScene()
 			glStencilMask(0x00); // No writing to stencil buffer
 			glDisable(GL_DEPTH_TEST);
 			colorShader->Bind();
-			colorShader->SetUniformMat4f("view", camera->GetView());
-			colorShader->SetUniformMat4f("projection", camera->GetProjection());
 			colorShader->SetUniformMat4f("model", glm::scale(model, glm::vec3(1.02f, 1.02f, 1.02f)));
 			colorShader->SetUniform3f("emission", 0.0f, 0.0, 1.0f);
 			actor->Draw(*colorShader);
@@ -310,8 +317,6 @@ void DrawScene()
 		glDisable(GL_CULL_FACE); // We want windows visible from both angles!
 
 		spriteShader->Bind();
-		spriteShader->SetUniformMat4f("view", camera->GetView());
-		spriteShader->SetUniformMat4f("projection", camera->GetProjection());
 		spriteShader->SetUniform1i("diffuse", 0);
 		windowTexture->Bind(0);
 
@@ -340,8 +345,6 @@ void DrawScene()
 	// Light visualizers
 	{
 		colorShader->Bind();
-		colorShader->SetUniformMat4f("view", camera->GetView());
-		colorShader->SetUniformMat4f("projection", camera->GetProjection());
 		for (int i = 0; i < NUM_LIGHTS; ++i)
 		{
 			glm::mat4 model(1.0f);
@@ -356,6 +359,7 @@ void DrawScene()
 	// Skybox - render last to prevent overdraw
 	{
 		glDisable(GL_CULL_FACE);
+		glDepthFunc(GL_LEQUAL);
 		skyboxShader->Bind();
 		skyboxShader->SetUniformMat4f("projection", camera->GetProjection());
 		glm::mat4 viewNoTranslation = glm::mat4(glm::mat3(camera->GetView()));
@@ -363,6 +367,7 @@ void DrawScene()
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_CUBE_MAP, cubemap);
 		cube->Draw(*skyboxShader);
+		glDepthFunc(GL_LESS);
 		glEnable(GL_CULL_FACE);
 	}
 }
@@ -389,7 +394,7 @@ int RunApp()
 
 	/* Make the window's context current */
 	glfwMakeContextCurrent(window);
-	glfwSwapInterval(1);
+	glfwSwapInterval(0);
 
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	glfwSetCursorPosCallback(window, MouseCallback);
@@ -409,7 +414,6 @@ int RunApp()
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_BLEND);
 
-	glDepthFunc(GL_LEQUAL);
 
 	glEnable(GL_CULL_FACE);
 
@@ -451,6 +455,24 @@ int RunApp()
 	spriteShader = new Shader("res/shaders/BasicLit.vs", "res/shaders/Sprite.fs");
 	postProcessShader = new Shader("res/shaders/PostProcess.vs", "res/shaders/EdgeDetection.fs");
 	skyboxShader = new Shader("res/shaders/Skybox.vs", "res/shaders/Skybox.fs");
+
+	// Uniform Buffer Object Setup
+	unsigned int ubiBasicLit = glGetUniformBlockIndex(basicLitShader->GetID(), "Matrices");
+	unsigned int ubiColor = glGetUniformBlockIndex(colorShader->GetID(), "Matrices");
+	unsigned int ubiSprite = glGetUniformBlockIndex(spriteShader->GetID(), "Matrices");
+
+	glUniformBlockBinding(basicLitShader->GetID(), ubiBasicLit, 0);
+	glUniformBlockBinding(colorShader->GetID(), ubiColor, 0);
+	glUniformBlockBinding(spriteShader->GetID(), ubiSprite, 0);
+
+	glGenBuffers(1, &uboMatrices);
+	glBindBuffer(GL_UNIFORM_BUFFER, uboMatrices);
+	glBufferData(GL_UNIFORM_BUFFER, 2 * sizeof(glm::mat4), nullptr, GL_STATIC_DRAW);
+	glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+	// Link the uniform buffer to the binding point 0
+	glBindBufferRange(GL_UNIFORM_BUFFER, 0, uboMatrices, 0, 2 * sizeof(glm::mat4));
+
 
 	actor = new Model("res/models/nanosuit/nanosuit.obj");
 	cube = new Model("res/models/cube/cube.obj");
