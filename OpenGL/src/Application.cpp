@@ -42,10 +42,13 @@ int height = 540;
 bool firstMouse = true;
 float lastX = width / 2.0f;
 float lastY = height / 2.0f;
+float normalLength = 0.1f;
 
 bool showOutline = false;
 bool drawTransparentWindows = false;
 bool usePostProcessing = false;
+bool showNormals = true;
+
 
 constexpr int NUM_LIGHTS = 4;
 glm::vec3 dirLightDirection(-0.2f, -1.0f, -0.3f);
@@ -93,6 +96,7 @@ Shader* colorShader = nullptr;
 Shader* spriteShader = nullptr;
 Shader* postProcessShader = nullptr;
 Shader* skyboxShader = nullptr;
+Shader* normalShader = nullptr;
 
 Model* actor	= nullptr;
 Model* cube		= nullptr;
@@ -309,6 +313,14 @@ void DrawScene()
 			glEnable(GL_DEPTH_TEST);
 			glStencilMask(0xff);
 		}
+
+		if (showNormals)
+		{
+			normalShader->Bind();
+			normalShader->SetUniformMat4f("model", model);
+			normalShader->SetUniform1f("normalLength", normalLength);
+			actor->Draw(*normalShader);
+		}
 	}
 
 	// Windows
@@ -455,15 +467,20 @@ int RunApp()
 	spriteShader = new Shader("res/shaders/BasicLit.vs", "res/shaders/Sprite.fs");
 	postProcessShader = new Shader("res/shaders/PostProcess.vs", "res/shaders/EdgeDetection.fs");
 	skyboxShader = new Shader("res/shaders/Skybox.vs", "res/shaders/Skybox.fs");
+	// This one uses a geometry shader
+	normalShader = new Shader("res/shaders/Normals.vs", "res/shaders/Normals.fs", "res/shaders/Normals.gs");
 
 	// Uniform Buffer Object Setup
 	unsigned int ubiBasicLit = glGetUniformBlockIndex(basicLitShader->GetID(), "Matrices");
 	unsigned int ubiColor = glGetUniformBlockIndex(colorShader->GetID(), "Matrices");
 	unsigned int ubiSprite = glGetUniformBlockIndex(spriteShader->GetID(), "Matrices");
+	unsigned int ubiNormal = glGetUniformBlockIndex(normalShader->GetID(), "Matrices");
 
 	glUniformBlockBinding(basicLitShader->GetID(), ubiBasicLit, 0);
 	glUniformBlockBinding(colorShader->GetID(), ubiColor, 0);
 	glUniformBlockBinding(spriteShader->GetID(), ubiSprite, 0);
+	glUniformBlockBinding(normalShader->GetID(), ubiNormal, 0);
+
 
 	glGenBuffers(1, &uboMatrices);
 	glBindBuffer(GL_UNIFORM_BUFFER, uboMatrices);

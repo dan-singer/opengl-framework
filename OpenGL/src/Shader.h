@@ -7,6 +7,7 @@ struct ShaderProgramSource
 {
 	std::string VertexSource;
 	std::string FragmentSource;
+	std::string GeometrySource;
 };
 
 class Shader
@@ -16,7 +17,7 @@ private:
 	std::unordered_map<std::string, int> m_UniformLocationCache;
 	// caching for uniforms
 public:
-	Shader(const std::string& vs, const std::string& ps);
+	Shader(const std::string& vs, const std::string& fs, const std::string& gs = "");
 
 	unsigned int GetID() { return m_RendererID; }
 
@@ -35,6 +36,6 @@ public:
 private:
 	unsigned int CompileShader(unsigned int type, const std::string& source);
 	int GetUniformLocation(const std::string& name);
-	unsigned int CreateShader(const std::string& vertexShader, const std::string& fragmentShader);
-	ShaderProgramSource ParseShader(const std::string& vs, const std::string& ps);
+	unsigned int CreateShader(const std::string& vertexShader, const std::string& fragmentShader, const std::string& geometryShader = "");
+	ShaderProgramSource ParseShader(const std::string& vs, const std::string& fs, const std::string& gs = "");
 };

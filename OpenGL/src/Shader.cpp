@@ -4,11 +4,11 @@
 #include <fstream>
 #include <string>
 #include <sstream>
-Shader::Shader(const std::string& vs, const std::string& ps) :
+Shader::Shader(const std::string& vs, const std::string& fs, const std::string& gs /*= ""*/) :
 	m_RendererID(0)
 {
-	ShaderProgramSource source = ParseShader(vs, ps);
-	m_RendererID = CreateShader(source.VertexSource, source.FragmentSource);
+	ShaderProgramSource source = ParseShader(vs, fs, gs);
+	m_RendererID = CreateShader(source.VertexSource, source.FragmentSource, source.GeometrySource);
 }
 
 void Shader::Bind() const
@@ -67,15 +67,20 @@ int Shader::GetUniformLocation(const std::string& name)
 	return location;
 }
 
-unsigned int Shader::CreateShader(const std::string& vertexShader, const std::string& fragmentShader)
+unsigned int Shader::CreateShader(const std::string& vertexShader, const std::string& fragmentShader, const std::string& geometryShader)
 {
 	unsigned int program = glCreateProgram();
 
 	unsigned int vs = CompileShader(GL_VERTEX_SHADER, vertexShader);
 	unsigned int fs = CompileShader(GL_FRAGMENT_SHADER, fragmentShader);
-
 	glAttachShader(program, vs);
 	glAttachShader(program, fs);
+
+	if (geometryShader != "") {
+		unsigned int gs = CompileShader(GL_GEOMETRY_SHADER, geometryShader);
+		glAttachShader(program, gs);
+	}
+
 	glLinkProgram(program);
 	glValidateProgram(program);
 
@@ -87,14 +92,32 @@ unsigned int Shader::CreateShader(const std::string& vertexShader, const std::st
 
 
 
-ShaderProgramSource Shader::ParseShader(const std::string& vs, const std::string& ps)
+ShaderProgramSource Shader::ParseShader(const std::string& vs, const std::string& fs, const std::string& gs /*= ""*/)
 {
+
+	ShaderProgramSource source;
+
 	std::ifstream vsStream(vs);
-	std::ifstream psStream(ps);
+	std::ifstream fsStream(fs);
 
 	std::string vsSource((std::istreambuf_iterator<char>(vsStream)), std::istreambuf_iterator<char>());
-	std::string psSource((std::istreambuf_iterator<char>(psStream)), std::istreambuf_iterator<char>());
-	return { vsSource, psSource };
+	std::string fsSource((std::istreambuf_iterator<char>(fsStream)), std::istreambuf_iterator<char>());
+	source.VertexSource = vsSource;
+	source.FragmentSource = fsSource;
+
+	if (gs != "") 
+	{
+		std::ifstream gsStream(gs);
+		std::string gsSource((std::istreambuf_iterator<char>(gsStream)), std::istreambuf_iterator<char>());
+		source.GeometrySource = gsSource;
+	} 
+	else
+	{
+		source.GeometrySource = "";
+	}
+
+
+	return source;
 }
 
 unsigned int Shader::CompileShader(unsigned int type, const std::string& source)
@@ -112,7 +135,14 @@ unsigned int Shader::CompileShader(unsigned int type, const std::string& source)
 		glGetShaderiv(id, GL_INFO_LOG_LENGTH, &length);
 		char* message = (char*)alloca(length * sizeof(char)); // Allocate dynamically sized data on the stack!
 		glGetShaderInfoLog(id, length, &length, message);
-		std::cout << "Failed to compile " << (type == GL_VERTEX_SHADER ? "vertex" : "fragment") << " shader!\n";
+		std::string typeString;
+		if (type == GL_VERTEX_SHADER)
+			typeString = "vertex";
+		else if (type == GL_FRAGMENT_SHADER)
+			typeString = "fragment";
+		else
+			typeString = "geometry";
+		std::cout << "Failed to compile " << typeString << " shader!\n";
 		std::cout << message << std::endl;
 		glDeleteShader(id);
 		return 0;
